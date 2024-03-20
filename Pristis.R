@@ -1,7 +1,7 @@
-setwd("C:/Users/samue/Desktop/Honours - Sawfish/pristis data for Sam")
+setwd("C:/Users/samue/Desktop/Honours - Sawfish/pristis_data")
 
 install.packages("hierfstat")
-#devtools::install_version("ggplot2", "3.4.4")
+devtools::install_version("ggplot2", "3.4.4")
 library(dartRverse)
 library(ggplot2)
 library(hierfstat)

@@ -45,9 +45,10 @@ ggplot(data = tab.sex, mapping = aes(x = sex,
 
 meta
 
-ggplot(data = meta, mapping = aes(TL_cm, 
-                                  fill = sex)) +
+ggplot(data = meta, mapping = aes(TL_cm, fill = sex)) +
   geom_histogram() +
+  ggtitle("Distribution of sizes between male and female P. pristis") +
+  theme(plot.title = element_text(size = 30, hjust = 0.5)) +
   theme_classic()
 
 
