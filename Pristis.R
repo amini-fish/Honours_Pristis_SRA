@@ -16,6 +16,11 @@ meta <- "Sawfish_meta2.csv"
 
 #Compile them into one gl
 
+raw.gl <- dartR.base::gl.read.dart(filename = data, ind.metafile = meta)
+gl.smearplot(raw.gl)
+?gl.smearplot
+
+
 data.gl <- dartR.base::gl.read.dart(filename = data, ind.metafile = meta); data.gl
 
 pop(data.gl) <- data.gl@other$ind.metrics$pop
@@ -31,33 +36,39 @@ library(dartRverse)
 #install_github("green-striped-gecko/dartR.sexlinked@dev")
 library(dartR.sexlinked)
 
-gl.filter.sexlinked(data.gl, system = "xy")
+data.gl <- gl.filter.sexlinked(data.gl, system = "xy")
+
+data.gl <- data.gl$autosomal
 
 ## Get rid of unreliable loci
 
-data.gl <- dartR.base::gl.filter.reproducibility(data.gl, threshold = 0.98)
+gl.report.reproducibility(data.gl)
+
+data.gl <- dartR.base::gl.filter.reproducibility(data.gl, threshold = 0.99)
   
 ## Callrate 
-dartR.base::gl.report.callrate(gl.1)
+dartR.base::gl.report.callrate(data.gl)
 
-data.gl <- dartR.base::gl.filter.callrate(data.gl, method = "loc", threshold = 0.9)
-
-#Very low filter – this is only to get rid of your really bad individuals
-dartR.base::gl.report.callrate(data.gl, method = "ind")
-data.gl <- dartR.base::gl.filter.callrate(data.gl, method = "ind", threshold = 0.99)
-
-#Always run this after removing individuals – removes loci that are no longer variable
-data.gl <- dartR.base::gl.filter.monomorphs(data.gl)
+data.gl <- dartR.base::gl.filter.callrate(data.gl, method = "loc", threshold = 0.99)
 
 #Get rid of low and super high read depth loci
 #do twice so you can zoom in
 
 dartR.base::gl.report.rdepth(data.gl)
 
-data.gl <- dartR.base::gl.filter.rdepth(data.gl, lower = 7, upper = 75)
+data.gl <- dartR.base::gl.filter.rdepth(data.gl, lower = 10, upper = 75)
 
 data.gl <- dartR.base::gl.filter.secondaries(data.gl)
 
+#Very low filter – this is only to get rid of your really bad individuals
+dartR.base::gl.report.callrate(data.gl, method = "ind")
+
+data.gl <- dartR.base::gl.filter.callrate(data.gl, method = "ind", threshold = 0.99)
+
+#Always run this after removing individuals – removes loci that are no longer variable
+data.gl <- dartR.base::gl.filter.monomorphs(data.gl)
+
+gl.smearplot(data.gl)
 ### remove evidence of DNA contamination ## Important for kin finding 
 dartR.base::gl.report.heterozygosity(data.gl, method = "ind")
 
@@ -277,62 +288,7 @@ packageVersion("gbasics") ## should be 0.0.93
 ## correct, restart R after installing new packages. (bug confirmed
 ## under RStudio on MacOS Mojave, R 3.6.1)
 
-library(devtools)
-install_github("green-striped-gecko/dartR.captive@dev")
-library(dartR.captive)
 
-set.seed(42)
-
-kin <- gl.run.EMIBD9(data.gl,emibd9.path = "C:/EMIBD9")
-
-kin <- [[2]]; 
-
-install.packages("spaa")
-library(spaa)
-dist <- dist2list(kin.search.all$kin)
-
-# Kick out self comparisons
-ibd9Tab <- kin.search.all[kin.search.all$Indiv1 != kin.search.all$Indiv2,  c(1, 2, 21)]; ibd9Tab
-
-# Add cohorts 
-Cohort1 <- data.gl@other$ind.metrics$Cohort[as.numeric(ibd9Tab$Indiv1)]
-Cohort2 <- data.gl@other$ind.metrics$Cohort[as.numeric(ibd9Tab$Indiv2)]
-# Flag pairs trapping within G, T and in between (BW)
-
-CC <- ifelse(Cohort1 == Cohort2, 
-             yes = "same", 
-             no = "different")
-
-# Combine together
-ibd9DT <- as.matrix(cbind(ibd9Tab, Cohort1, Cohort2, CC)); ibd9DT
-
-# Combine together
-ibd9DT <- data.frame(cbind(ibd9Tab, Cohort1, Cohort2, CC)); ibd9DT
-
-# Compute the mean relatedness
-ibd9DT[, mean(as.numeric(`r(1,2)`)), by=CC]
-
-
-#Putative siblings
-sibs <- ifelse(ibd9DT$r.1.2. >= 0.092 & ibd9DT$r.1.2. <= 0.158, 
-               yes = "half-siblings", 
-               no = ifelse(ibd9DT$r.1.2. >=0.204 & ibd9DT$r.1.2. <= 0.296, 
-                           yes = "fsp or pop",
-                           "unelated"))
-
-#Add the sibling assignments to a new data frame 
-
-ibd9DT.2 <- data.frame(cbind(ibd9DT, sibs)); ibd9DT.2
-
-####  Assign kin to sibling network  #####
-
-#hsps - extract
-
-half.sibs <- subset(ibd9DT.2, sibs == "half-siblings"); half.sibs
-
-#fsps - extract 
-
-full.sibs <- subset(ibd9DT.2, sibs == "fsp or pop"); full.sibs
 
 #ALLLLL stitched together now 
 
