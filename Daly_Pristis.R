@@ -202,10 +202,11 @@ rel.hist <- ggplot(data = ibd9DT, aes(x = as.numeric(r.1.2.))) +
   geom_vline(xintercept = 0.296, col = "black", size = 1,  linetype="dotted") +
   scale_x_continuous(n.breaks = 12) +
   scale_y_continuous(n.breaks = 10) + 
-  scale_color_manual(name = "kinships", values = c("mean" = "green", "half-sib" = "orange", "full-sib" = "skyblue"))
+  scale_color_manual(name = "kinships", values = c("mean" = "green", "half-sib" = "orange", "full-sib" = "skyblue")) 
 
 
 rel.hist
 
+# #geom_density(alpha=.2, fill="#FF6666") Keep for a rainy day.
 
 
