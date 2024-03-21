@@ -62,6 +62,8 @@ data.gl <- dartR.base::gl.filter.rdepth(data.gl, lower = 10, upper = 75)
 
 data.gl <- dartR.base::gl.filter.secondaries(data.gl)
 
+data.gl <- dartR.base::gl.filter.maf(data.gl, t = 0.1)
+
 #Very low filter – this is only to get rid of your really bad individuals
 
 dartR.base::gl.report.callrate(data.gl, method = "ind")
@@ -84,6 +86,8 @@ data.gl <- dartR.base::gl.filter.heterozygosity(data.gl,t.lower = 0.2,  t.upper 
 data.gl@other$history
 
 gl.smearplot(data.gl, ind.labels = T)
+
+data.gl
 
 ################################################################################
 
@@ -165,3 +169,43 @@ sibs.all[!duplicated(sibs.all$r.1.2.), ]
 
 
 unfiltered_smear_daly <- readRDS("C:/Users/samue/AppData/Local/Temp/RtmpgTwQhk/unfiltered_smear_daly.RDS"); unfiltered_smear_daly
+
+# Kick out self comparisons
+ibd9Tab <- ibd9Tab[ibd9Tab$Indiv1 != ibd9Tab$Indiv2,  c(1, 2, 21)]; ibd9Tab
+
+str(ibd9DT)
+
+mean.rel <- mean(as.numeric(ibd9DT$r.1.2.)) ## Mean is 0.0129 
+sd.rel <- sd(as.numeric(ibd9DT$r.1.2.)) ## SD is +- 0.0323
+med <- median(as.numeric(ibd9DT$r.1.2.)) ## 0.00575
+
+
+lines <- data.frame()
+
+
+
+rel.hist <- ggplot(data = ibd9DT, aes(x = as.numeric(r.1.2.))) +
+  geom_histogram(bins = 200, col = I("black")) +
+  labs(title = "Histogram of kinship coefficients (θ) calculated in EMIBD9 (Wang et al., 2022)") +
+  xlab("Kinship (θ)") +
+  ylab("Count") +
+    theme(plot.title = element_text(hjust = 0.5, size = 22), 
+        axis.title.x = element_text(size = 15),
+        axis.title.y = element_text(size = 15), 
+        axis.text = element_text(size = 13)) +
+  geom_vline(xintercept = med, size = 1.1, col = "green") +
+  geom_vline(xintercept = 0.125, size = 1.1, col = "orange") +
+  geom_vline(xintercept = 0.250, size = 1.1, col = "skyblue") +
+  geom_vline(xintercept = 0.092, col = "black", size = 1, linetype="dotted") +
+  geom_vline(xintercept = 0.158, col = "black", size = 1,  linetype="dotted") +
+  geom_vline(xintercept = 0.204, col = "black", size = 1, linetype="dotted") +
+  geom_vline(xintercept = 0.296, col = "black", size = 1,  linetype="dotted") +
+  scale_x_continuous(n.breaks = 12) +
+  scale_y_continuous(n.breaks = 10) + 
+  scale_color_manual(name = "kinships", values = c("mean" = "green", "half-sib" = "orange", "full-sib" = "skyblue"))
+
+
+rel.hist
+
+
+
