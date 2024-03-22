@@ -62,8 +62,7 @@ p <- ggplot(data = meta, mapping = aes(TL_cm, fill = sex)) +
   labs(y = "Count", x = "Total Length (cm)") +
   geom_vline(data = group_mean, aes(xintercept = median, color= sex),
              linetype="dashed", size = 1.2)
-  
-  
+
 p 
 
  
@@ -101,5 +100,32 @@ q
 
 ## Plot them next to each other
 #library("gridExtra")
+?subset
 grid.arrange(p,q, ncol = 2)
-             
+
+#Lets calculate some rough descriptive states for relatedness and other predictor variables e.g. TL mean
+library(tidyr)
+## First we subset the data to only include our Daly samples 
+meta
+daly <- subset(meta, pop == "Daly", select = c(id, sex, TL_cm, Cohort, pop))
+daly # looks good (bare bones metadata)
+
+#lets save it as a data frame..
+
+daly <- as.data.frame(daly); daly
+
+## Replace the NA's with an approximate birth cohort...
+daly[is.na(daly)] <- 2008; daly
+
+summary(daly)
+
+group_mean<- aggregate(x= daly$TL_cm,
+                       # Specify group indicator
+                       by = list(daly$sex),      
+                       # Specify function (i.e. mean)
+                       FUN = sd)
+print(group_mean)
+
+table(daly$sex)
+
+16/29

@@ -100,8 +100,6 @@ library(dartR.captive)
 
 daly.rel <- gl.run.EMIBD9(data.gl, emibd9.path =  "C:/EMIBD9")
 
-daly.rel$rel
-
 ibd9Tab <- daly.rel[[2]]; daly.rel
 
 # Kick out self comparisons
@@ -165,7 +163,7 @@ sibs.all <- rbind(half.sibs, full.sibs); sibs.all
 # Remove duplicated pairs (i.e., Ab & BA)
 
 sibs.all[!duplicated(sibs.all$r.1.2.), ] 
-
+sibs.all
 
 
 unfiltered_smear_daly <- readRDS("C:/Users/samue/AppData/Local/Temp/RtmpgTwQhk/unfiltered_smear_daly.RDS"); unfiltered_smear_daly
@@ -208,5 +206,10 @@ rel.hist <- ggplot(data = ibd9DT, aes(x = as.numeric(r.1.2.))) +
 rel.hist
 
 # #geom_density(alpha=.2, fill="#FF6666") Keep for a rainy day.
-
-
+?heatmap.2
+?scale_fill_grey
+colo <- viridisLite::viridis(n = 20)
+heatmap.2(daly.rel$rel, scale = "none", col = colo, 
+          trace = "none", density.info = "none", 
+          main = "Heatmap of relatedness (θ) in sawfish from the Daly River", 
+          dendrogram = c("none"))
