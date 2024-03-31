@@ -265,7 +265,7 @@ kin_network1 <- ggraph::ggraph(network, layout = layout) +
     aes(width = Cohort_gap,
         edge_colour = factor(sibs)),
     #arrow = arrow(length = unit(3, 'mm')), 
-    end_cap = ggraph::circle(2, 'mm'),
+    #end_cap = ggraph::circle(2, 'mm'),
     edge_alpha = 1) +
   ggraph::scale_edge_width(range = c(1,2), breaks = c(0,1), name = "Cohort Gap") +
   ggraph::scale_edge_colour_manual(values = c("orange", "skyblue"),
@@ -285,4 +285,4 @@ kin_network1 <- ggraph::ggraph(network, layout = layout) +
 
 print(kin_network1)
 
-?scale_edge_width
+
