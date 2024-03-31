@@ -269,7 +269,7 @@ kin_network1 <- ggraph::ggraph(network, layout = layout) +
     edge_alpha = 1) +
   ggraph::scale_edge_width(range = c(1,2), breaks = c(0,1), name = "Cohort Gap") +
   ggraph::scale_edge_colour_manual(values = c("orange", "skyblue"),
-                                   name = "Kin-Type",
+                                   name = "Kin Type",
                                    aesthetics = "edge_colour",
                                    na.value = "grey50") +
   ggraph::geom_node_point(aes(shape = sex),
@@ -280,8 +280,7 @@ kin_network1 <- ggraph::ggraph(network, layout = layout) +
   ggplot2::theme_void() +
   ggplot2::theme(
     legend.position = "right",
-    plot.margin = unit(rep(1,4), "cm")
-  ) 
+    plot.margin = unit(rep(1,4), "cm")) 
 
 
 print(kin_network1)
