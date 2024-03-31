@@ -285,4 +285,4 @@ kin_network1 <- ggraph::ggraph(network, layout = layout) +
 
 print(kin_network1)
 
-
+?gl.run.EMIBD9
