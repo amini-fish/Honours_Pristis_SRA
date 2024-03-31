@@ -13,16 +13,16 @@ heat
 
 #save(gl, file = "Sawfish Prelim Data.RData") 
 
-data <- "Sawfish_SNPs_genotyped.csv"
-meta <- "Sawfish_meta2.csv"
+#data <- "Sawfish_SNPs_genotyped.csv"
+#meta <- "Sawfish_meta2.csv"
 
 ## Compile them into one gl
 
-data.gl <- dartR.base::gl.read.dart(filename = data, ind.metafile = meta); data.gl
+#data.gl <- dartR.base::gl.read.dart(filename = data, ind.metafile = meta); data.gl
 
-pop(data.gl) <- data.gl@other$ind.metrics$pop
+#pop(data.gl) <- data.gl@other$ind.metrics$pop
 
-table(pop(data.gl))
+#table(pop(data.gl))
 
 ## Keep the Daly Inds
 
@@ -87,6 +87,8 @@ data.gl@other$history
 
 gl.smearplot(data.gl, ind.labels = T)
 
+unfiltered_smear_daly <- readRDS("C:/Users/samue/AppData/Local/Temp/RtmpgTwQhk/unfiltered_smear_daly.RDS"); unfiltered_smear_daly
+
 data.gl
 
 ################################################################################
@@ -95,12 +97,14 @@ data.gl
 
 install_github("green-striped-gecko/dartR.captive@dev_sam")
 library(dartR.captive)
-
-?gl.run.EMIBD9
+library(gplots)
 
 daly.rel <- gl.run.EMIBD9(data.gl, emibd9.path =  "C:/EMIBD9")
 
 ibd9Tab <- daly.rel[[2]]; daly.rel
+
+daly.rel$rel
+colnames(daly.rel$rel)
 
 # Kick out self comparisons
 ibd9Tab <- ibd9Tab[ibd9Tab$Indiv1 != ibd9Tab$Indiv2,  c(1, 2, 21)]; ibd9Tab
@@ -122,6 +126,23 @@ ibd9DT <- data.frame(cbind(ibd9Tab, Cohort1, Cohort2, CC)); ibd9DT
 mean(as.numeric(ibd9DT$r.1.2.)) ## Mean is 0.0129 
 sd(as.numeric(ibd9DT$r.1.2.)) ## SD is +- 0.0323
 
+
+## Test for within and between cohort means, note this isn't perfect
+group_mean<- aggregate(x= as.numeric(ibd9DT$r.1.2.),
+                       # Specify group indicator
+                       by = list(ibd9DT$CC),      
+                       # Specify function (i.e. mean)
+                       FUN = mean)
+
+group_mean
+
+group_sd <- aggregate(x= as.numeric(ibd9DT$r.1.2.),
+                       # Specify group indicator
+                       by = list(ibd9DT$CC),      
+                       # Specify function (i.e. mean)
+                       FUN = sd)
+
+group_sd
 #A quick look at the spread of rel values...
 
 hist(as.numeric(ibd9DT$r.1.2.), breaks = 250)
@@ -133,6 +154,7 @@ fsp.sim <- dartR.captive::gl.sim.relatedness(data.gl, rel = "full.sib", nboots =
 
 hsp.sim <- dartR.captive::gl.sim.relatedness(data.gl, rel = "half.sib", nboots = 10, emibd9.path = "C:/EMIBD9")
 
+
 ## Putative siblings - we use the 95% CI from the simulations to groundtruth our sibling relationships as mean rel is 0.01
 sibs <- ifelse(ibd9DT$r.1.2. >= 0.092 & ibd9DT$r.1.2. <= 0.158, 
                yes = "hsp", 
@@ -143,8 +165,6 @@ sibs <- ifelse(ibd9DT$r.1.2. >= 0.092 & ibd9DT$r.1.2. <= 0.158,
 #Add the sibling assignments to a new data frame 
 
 ibd9DT.2 <- data.frame(cbind(ibd9DT, sibs)); ibd9DT.2
-
-
 
 ####  Assign kin to sibling network  #####
 
@@ -165,9 +185,6 @@ sibs.all <- rbind(half.sibs, full.sibs); sibs.all
 sibs.all[!duplicated(sibs.all$r.1.2.), ] 
 sibs.all
 
-
-unfiltered_smear_daly <- readRDS("C:/Users/samue/AppData/Local/Temp/RtmpgTwQhk/unfiltered_smear_daly.RDS"); unfiltered_smear_daly
-
 # Kick out self comparisons
 ibd9Tab <- ibd9Tab[ibd9Tab$Indiv1 != ibd9Tab$Indiv2,  c(1, 2, 21)]; ibd9Tab
 
@@ -177,14 +194,9 @@ mean.rel <- mean(as.numeric(ibd9DT$r.1.2.)) ## Mean is 0.0129
 sd.rel <- sd(as.numeric(ibd9DT$r.1.2.)) ## SD is +- 0.0323
 med <- median(as.numeric(ibd9DT$r.1.2.)) ## 0.00575
 
-
-lines <- data.frame()
-
-
-
 rel.hist <- ggplot(data = ibd9DT, aes(x = as.numeric(r.1.2.))) +
   geom_histogram(bins = 200, col = I("black")) +
-  labs(title = "Histogram of kinship coefficients (θ) calculated in EMIBD9 (Wang et al., 2022)") +
+  labs(title = "Histogram of kinship coefficients (θ) between 2012 & 2013 sawfish") +
   xlab("Kinship (θ)") +
   ylab("Count") +
     theme(plot.title = element_text(hjust = 0.5, size = 22), 
@@ -206,10 +218,72 @@ rel.hist <- ggplot(data = ibd9DT, aes(x = as.numeric(r.1.2.))) +
 rel.hist
 
 # #geom_density(alpha=.2, fill="#FF6666") Keep for a rainy day.
-?heatmap.2
-?scale_fill_grey
 colo <- viridisLite::viridis(n = 20)
 heatmap.2(daly.rel$rel, scale = "none", col = colo, 
           trace = "none", density.info = "none", 
           main = "Heatmap of relatedness (θ) in sawfish from the Daly River", 
           dendrogram = c("none"))
+
+
+### Lets reload our related individuals updated with names and make the heatmap...
+
+sibs  <- read.csv("Daly_Sibs.csv")
+meta <- read.csv("Daly_meta.csv")
+sibs
+
+meta <- meta[meta$id %in% c(sibs$id1, sibs$id2),]
+data <- sibs
+kinNWdata <- data %>% 
+  dplyr::mutate(Cohort_gap = Cohort1 - Cohort2) %>%
+  dplyr::select(id1, id2, sibs, Cohort_gap)
+
+#Calculate the gap between cohorts, and add it into a new dataframe
+
+kinNWdata$Cohort_gap[kinNWdata$Cohort_gap<0] <- 1 # this replaces all of our "negative" cohort gaps so that we have a tidy plot
+
+kinNWdata
+#This makes our data frame from which the pariwise network plot between select individuals will be drawn 
+
+network <- igraph::graph_from_data_frame(d = kinNWdata, directed = TRUE) 
+
+df <- data.frame(id = igraph::V(network)$name)
+
+vertices <- dplyr::left_join(df, meta, by = "id") %>%
+  dplyr::select(id, sex, cohort)
+vertices <- as_data_frame(vertices, what = "vertices")
+
+
+network <- igraph::graph_from_data_frame(d = kinNWdata, directed = TRUE,
+                                         vertices = vertices ) 
+
+layout <- ggraph::create_layout(network, layout = 'igraph', 
+                                circular = FALSE, algorithm = 'fr')
+attributes(layout)
+
+kin_network1 <- ggraph::ggraph(network, layout = layout) + 
+  ggraph::geom_edge_link( 
+    aes(width = Cohort_gap,
+        edge_colour = factor(sibs)),
+    #arrow = arrow(length = unit(3, 'mm')), 
+    end_cap = ggraph::circle(2, 'mm'),
+    edge_alpha = 1) +
+  ggraph::scale_edge_width(range = c(1,2), breaks = c(0,1), name = "Cohort Gap") +
+  ggraph::scale_edge_colour_manual(values = c("orange", "skyblue"),
+                                   name = "Kin-Type",
+                                   aesthetics = "edge_colour",
+                                   na.value = "grey50") +
+  ggraph::geom_node_point(aes(shape = sex),
+                          size = 4) +
+  ggraph::geom_node_text( aes(label = df$id), repel = TRUE, 
+                          size = 5, color = "black") +
+  ggplot2::scale_color_manual(values = adegenet::funky(9), na.value = "grey50") +
+  ggplot2::theme_void() +
+  ggplot2::theme(
+    legend.position = "right",
+    plot.margin = unit(rep(1,4), "cm")
+  ) 
+
+
+print(kin_network1)
+
+?scale_edge_width

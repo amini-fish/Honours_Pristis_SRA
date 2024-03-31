@@ -7,8 +7,6 @@ library(ggplot2)
 library(hierfstat)
 library(dplyr)
 
-
-
 #save(gl, file = "Sawfish Prelim Data.RData") 
 
 data <- "Sawfish_SNPs_genotyped.csv"
