@@ -1,4 +1,4 @@
-setwd("C:/Users/samue/Desktop/Honours - Sawfish/pristis_data")
+setwd("C:/Users/samue/Desktop/Honours_Sawfish/analysis")
 
 install.packages("hierfstat")
 devtools::install_version("ggplot2", "3.4.4")
@@ -16,7 +16,6 @@ meta <- "Sawfish_meta2.csv"
 
 raw.gl <- dartR.base::gl.read.dart(filename = data, ind.metafile = meta)
 gl.smearplot(raw.gl)
-?gl.smearplot
 
 
 data.gl <- dartR.base::gl.read.dart(filename = data, ind.metafile = meta); data.gl

@@ -101,6 +101,77 @@ geom_vline(xintercept = (-sd), col = "black", size = 1, linetype="dotted") +
   scale_y_continuous(n.breaks = 10)
 
 
+## Make a network plot for this analysis type too 
+
+#write.csv(trioML.sibs, "tioML_sibs_daly.csv")
+
+#we now need to manually add birth cohorts in (important to get right)
+
+#reload baack into R
+
+sibs  <- read.csv("tioML_sibs_daly.csv")
+meta <- read.csv("Daly_meta.csv")
+sibs
+
+meta <- meta[meta$id %in% c(sibs$id_1, sibs$id_2),]
+data <- sibs
+kinNWdata <- data %>% 
+  dplyr::mutate(Cohort_gap = cohort1 - cohort2) %>%
+  dplyr::select(id_1, id_2, sib, Cohort_gap)
+
+meta
+
+#Calculate the gap between cohorts, and add it into a new dataframe
+
+kinNWdata$Cohort_gap[kinNWdata$Cohort_gap<0] <- 1 # this replaces all of our "negative" cohort gaps so that we have a tidy plot
+
+kinNWdata
+
+#This makes our data frame from which the pariwise network plot between select individuals will be drawn 
+
+network <- igraph::graph_from_data_frame(d = kinNWdata, directed = TRUE) 
+
+df <- data.frame(id = igraph::V(network)$name)
+df
+
+vertices <- dplyr::left_join(df, meta, by = "id") %>%
+  dplyr::select(id, sex, Cohort)
+vertices <- as_data_frame(vertices, what = "vertices")
+
+vertices
+
+network <- igraph::graph_from_data_frame(d = kinNWdata, directed = TRUE,
+                                         vertices = vertices ) 
+
+layout <- ggraph::create_layout(network, layout = 'igraph', 
+                                circular = FALSE, algorithm = 'fr')
+attributes(layout)
+
+kin_network1 <- ggraph::ggraph(network, layout = layout) + 
+  ggraph::geom_edge_link( 
+    aes(width = Cohort_gap,
+        edge_colour = factor(sib)),
+    #arrow = arrow(length = unit(3, 'mm')), 
+    #end_cap = ggraph::circle(2, 'mm'),
+    edge_alpha = 1) +
+  ggraph::scale_edge_width(range = c(1,2), breaks = c(0,1), name = "Cohort Gap") +
+  ggraph::scale_edge_colour_manual(values = c("orange", "skyblue"),
+                                   name = "Kin Type",
+                                   aesthetics = "edge_colour",
+                                   na.value = "grey50") +
+  ggraph::geom_node_point(aes(shape = sex),
+                          size = 4) +
+  ggraph::geom_node_text( aes(label = df$id), repel = TRUE, 
+                          size = 5, color = "black") +
+  ggplot2::scale_color_manual(values = adegenet::funky(9), na.value = "grey50") +
+  ggplot2::theme_void() +
+  ggplot2::theme(
+    legend.position = "right",
+    plot.margin = unit(rep(1,4), "cm")) 
+
+
+print(kin_network1)
+
 
 
 

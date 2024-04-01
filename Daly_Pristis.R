@@ -13,16 +13,16 @@ heat
 
 #save(gl, file = "Sawfish Prelim Data.RData") 
 
-#data <- "Sawfish_SNPs_genotyped.csv"
+data <- "Sawfish_SNPs_genotyped.csv"
 #meta <- "Sawfish_meta2.csv"
 
 ## Compile them into one gl
 
-#data.gl <- dartR.base::gl.read.dart(filename = data, ind.metafile = meta); data.gl
+data.gl <- dartR.base::gl.read.dart(filename = data, ind.metafile = meta); data.gl
 
-#pop(data.gl) <- data.gl@other$ind.metrics$pop
+pop(data.gl) <- data.gl@other$ind.metrics$pop
 
-#table(pop(data.gl))
+table(pop(data.gl))
 
 ## Keep the Daly Inds
 
@@ -98,10 +98,22 @@ data.gl
 install_github("green-striped-gecko/dartR.captive@dev_sam")
 library(dartR.captive)
 library(gplots)
+install.packages("graph4lg")
+library(graph4lg)
 
 daly.rel <- gl.run.EMIBD9(data.gl, emibd9.path =  "C:/EMIBD9")
 
 ibd9Tab <- daly.rel[[2]]; daly.rel
+
+## try the new function to convert from pairwise to edge 
+
+diag(daly.rel$rel) <- 0 # removes self comparisons hooray
+
+emibd.rel <- pw_mat_to_df(daly.rel$rel) # convert the square matrix to an edge based dataframe
+
+emibd.rel <- emibd.rel[,c(1,2,4)] # remove your third column (not needed and is confusing)
+
+emibd.rel
 
 daly.rel$rel
 colnames(daly.rel$rel)
@@ -109,9 +121,11 @@ colnames(daly.rel$rel)
 # Kick out self comparisons
 ibd9Tab <- ibd9Tab[ibd9Tab$Indiv1 != ibd9Tab$Indiv2,  c(1, 2, 21)]; ibd9Tab
 
-# Add cohorts 
-Cohort1 <- Daly@other$ind.metrics$cohort[as.numeric(ibd9Tab$Indiv1)]
-Cohort2 <- Daly@other$ind.metrics$cohort[as.numeric(ibd9Tab$Indiv2)]
+# Add cohorts - no bueno
+#Cohort1 <- Daly@other$ind.metrics$cohort[as.numeric(emibd.rel$id_1)]
+#Cohort2 <- Daly@other$ind.metrics$cohort[as.numeric(ibd9Tab$Indiv2)]
+
+
 # Flag pairs trapping within G, T and in between (BW)
 CC <- ifelse(Cohort1 == Cohort2, 
              yes = "same", 
@@ -156,37 +170,36 @@ hsp.sim <- dartR.captive::gl.sim.relatedness(data.gl, rel = "half.sib", nboots =
 
 
 ## Putative siblings - we use the 95% CI from the simulations to groundtruth our sibling relationships as mean rel is 0.01
-sibs <- ifelse(ibd9DT$r.1.2. >= 0.092 & ibd9DT$r.1.2. <= 0.158, 
+emibd.sibs <- ifelse(emibd.rel$value >= 0.092 & emibd.rel$value <= 0.158, 
                yes = "hsp", 
-               no = ifelse(ibd9DT$r.1.2. >=0.204 & ibd9DT$r.1.2. <= 0.296, 
+               no = ifelse(emibd.rel$value >=0.204 & emibd.rel$value <= 0.296, 
                            yes = "fsp",
                            "unelated"))
 
 #Add the sibling assignments to a new data frame 
 
-ibd9DT.2 <- data.frame(cbind(ibd9DT, sibs)); ibd9DT.2
+emibd.results <- data.frame(cbind(emibd.rel, emibd.sibs)); emibd.results
 
 ####  Assign kin to sibling network  #####
 
 #hsps - extract
 
-half.sibs <- subset(ibd9DT.2, sibs == "hsp"); half.sibs
+half.sibs <- subset(emibd.results, sibs == "hsp"); half.sibs
 
 #fsps - extract 
 
-full.sibs <- subset(ibd9DT.2, sibs == "fsp"); full.sibs
+full.sibs <- subset(emibd.results, sibs == "fsp"); full.sibs
 
-#ALLLLL stitched together now 
+# ALLLLL stitched together now 
 
-sibs.all <- rbind(half.sibs, full.sibs); sibs.all
+emibd.siblings <- rbind(half.sibs, full.sibs); sibs.all
 
 # Remove duplicated pairs (i.e., Ab & BA)
 
 sibs.all[!duplicated(sibs.all$r.1.2.), ] 
 sibs.all
 
-# Kick out self comparisons
-ibd9Tab <- ibd9Tab[ibd9Tab$Indiv1 != ibd9Tab$Indiv2,  c(1, 2, 21)]; ibd9Tab
+## Calculate our summary statistics for relatedness...
 
 str(ibd9DT)
 
@@ -227,31 +240,41 @@ heatmap.2(daly.rel$rel, scale = "none", col = colo,
 
 ### Lets reload our related individuals updated with names and make the heatmap...
 
-sibs  <- read.csv("Daly_Sibs.csv")
+## write our sibling results as csv 
+
+#write.csv(emibd.siblings, "emibd_sibs_daly.csv")
+
+
+sibs  <- read.csv("emibd_sibs_daly.csv")
 meta <- read.csv("Daly_meta.csv")
 sibs
 
-meta <- meta[meta$id %in% c(sibs$id1, sibs$id2),]
+meta <- meta[meta$id %in% c(sibs$id_1, sibs$id_2),]
 data <- sibs
 kinNWdata <- data %>% 
-  dplyr::mutate(Cohort_gap = Cohort1 - Cohort2) %>%
-  dplyr::select(id1, id2, sibs, Cohort_gap)
+  dplyr::mutate(Cohort_gap = cohort1 - cohort2) %>%
+  dplyr::select(id_1, id_2, relatedness, Cohort_gap)
+
+meta
 
 #Calculate the gap between cohorts, and add it into a new dataframe
 
 kinNWdata$Cohort_gap[kinNWdata$Cohort_gap<0] <- 1 # this replaces all of our "negative" cohort gaps so that we have a tidy plot
 
 kinNWdata
+
 #This makes our data frame from which the pariwise network plot between select individuals will be drawn 
 
 network <- igraph::graph_from_data_frame(d = kinNWdata, directed = TRUE) 
 
 df <- data.frame(id = igraph::V(network)$name)
+df
 
 vertices <- dplyr::left_join(df, meta, by = "id") %>%
-  dplyr::select(id, sex, cohort)
+  dplyr::select(id, sex, Cohort)
 vertices <- as_data_frame(vertices, what = "vertices")
 
+vertices
 
 network <- igraph::graph_from_data_frame(d = kinNWdata, directed = TRUE,
                                          vertices = vertices ) 
@@ -263,7 +286,7 @@ attributes(layout)
 kin_network1 <- ggraph::ggraph(network, layout = layout) + 
   ggraph::geom_edge_link( 
     aes(width = Cohort_gap,
-        edge_colour = factor(sibs)),
+        edge_colour = factor(relatedness)),
     #arrow = arrow(length = unit(3, 'mm')), 
     #end_cap = ggraph::circle(2, 'mm'),
     edge_alpha = 1) +
