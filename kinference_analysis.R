@@ -11,6 +11,19 @@
 ## https://clanfear.github.io/CSSS508/docs/compiling.html
 
 ### The CRAN packages: Rcpp and remotes
+install.packages('ggplot2', dep = TRUE)
+install.packages('data.table', dep = TRUE)
+
+library(dartRverse)
+library(adegenet)
+library(ggplot2)
+library(hierfstat)
+library(dplyr)
+library(devtools)
+library(dartR.sexlinked)
+library(viridis)
+
+
 install.packages("Rcpp")
 install.packages("remotes")
 
