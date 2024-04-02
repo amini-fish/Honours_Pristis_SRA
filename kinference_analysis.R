@@ -43,7 +43,7 @@ remotes::install_local("packages/genocalldart-master.zip", subdir = "genocalldar
 ## appropriate to your OS.
 
 ## Alternative installation for gbasics and kinference
-`install.packages(pkgs = c("gbasics", "kinference"), repos = "https://markbravington.github.io/Rmvb-repo")`
+install.packages(pkgs = c("gbasics", "kinference"), repos = "https://markbravington.github.io/Rmvb-repo")
 
 ## Now, test the installs on this example analysis:
 load("data/SHS_cleaned.Rdata") ## you'll need to input the correct filepath for your OS
@@ -51,6 +51,8 @@ library(kinference)
 
 
 pdf(file = "showShaneThisPdf.pdf")
+
+
 dups <- find_duplicates( SHS, max_diff_loci = 200, showPlot = TRUE)
 SHS_b <- SHS[ -c( drop_dups_pairwise_equiv( dups[,2:3])),]
 Lfish <- ilglk_geno(SHS_b, list(nclass = 1000, xlim = c(-1500,-1250) ))
