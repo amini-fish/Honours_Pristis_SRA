@@ -1,4 +1,4 @@
-setwd("C:/Users/samue/Desktop/Honours - Sawfish/pristis_data")
+setwd("C:/Users/samue/Desktop/Honours_Sawfish/analysis")
 
 install.packages("hierfstat")
 devtools::install_version("ggplot2", "3.4.4")
@@ -9,12 +9,11 @@ library(dplyr)
 library(devtools)
 library(dartR.sexlinked)
 library(viridis)
-heat
 
 #save(gl, file = "Sawfish Prelim Data.RData") 
 
 data <- "Sawfish_SNPs_genotyped.csv"
-#meta <- "Sawfish_meta2.csv"
+meta <- "Sawfish_meta2.csv"
 
 ## Compile them into one gl
 
@@ -95,17 +94,19 @@ data.gl
 
 ## Run some preliminary kin finding analyses
 
+#install.packages("graph4lg")
 install_github("green-striped-gecko/dartR.captive@dev_sam")
 library(dartR.captive)
 library(gplots)
-install.packages("graph4lg")
 library(graph4lg)
 
-daly.rel <- gl.run.EMIBD9(data.gl, emibd9.path =  "C:/EMIBD9")
+## Run our analysis - using EMIBD9 implementation 
+?gl.run.EMIBD9
+daly.rel <- gl.run.EMIBD9(data.gl, 
+                          Inbreed = 1, 
+                          emibd9.path =  "C:/EMIBD9")
 
-ibd9Tab <- daly.rel[[2]]; daly.rel
-
-## try the new function to convert from pairwise to edge 
+## Lets extract the relatedness data from our output file
 
 diag(daly.rel$rel) <- 0 # removes self comparisons hooray
 
@@ -113,23 +114,13 @@ emibd.rel <- pw_mat_to_df(daly.rel$rel) # convert the square matrix to an edge b
 
 emibd.rel <- emibd.rel[,c(1,2,4)] # remove your third column (not needed and is confusing)
 
-emibd.rel
+## Check your results: 
 
-daly.rel$rel
-colnames(daly.rel$rel)
+View(emibd.rel)
 
-# Kick out self comparisons
-ibd9Tab <- ibd9Tab[ibd9Tab$Indiv1 != ibd9Tab$Indiv2,  c(1, 2, 21)]; ibd9Tab
+# A neat bit of code to kick out self comparisons
 
-# Add cohorts - no bueno
-#Cohort1 <- Daly@other$ind.metrics$cohort[as.numeric(emibd.rel$id_1)]
-#Cohort2 <- Daly@other$ind.metrics$cohort[as.numeric(ibd9Tab$Indiv2)]
-
-
-# Flag pairs trapping within G, T and in between (BW)
-CC <- ifelse(Cohort1 == Cohort2, 
-             yes = "same", 
-             no = "different")
+#ibd9Tab <- ibd9Tab[ibd9Tab$Indiv1 != ibd9Tab$Indiv2,  c(1, 2, 21)]; ibd9Tab
 
 # Combine together
 ibd9DT <- as.matrix(cbind(ibd9Tab, Cohort1, Cohort2, CC)); ibd9DT
@@ -247,7 +238,6 @@ heatmap.2(daly.rel$rel, scale = "none", col = colo,
 
 sibs  <- read.csv("emibd_sibs_daly.csv")
 meta <- read.csv("Daly_meta.csv")
-sibs
 
 meta <- meta[meta$id %in% c(sibs$id_1, sibs$id_2),]
 data <- sibs
@@ -291,14 +281,14 @@ kin_network1 <- ggraph::ggraph(network, layout = layout) +
     #end_cap = ggraph::circle(2, 'mm'),
     edge_alpha = 1) +
   ggraph::scale_edge_width(range = c(1,2), breaks = c(0,1), name = "Cohort Gap") +
-  ggraph::scale_edge_colour_manual(values = c("orange", "skyblue"),
+  ggraph::scale_edge_colour_manual(values = c("skyblue", "orange"),
                                    name = "Kin Type",
                                    aesthetics = "edge_colour",
                                    na.value = "grey50") +
   ggraph::geom_node_point(aes(shape = sex),
                           size = 4) +
   ggraph::geom_node_text( aes(label = df$id), repel = TRUE, 
-                          size = 5, color = "black") +
+                          size = 4, color = "black") +
   ggplot2::scale_color_manual(values = adegenet::funky(9), na.value = "grey50") +
   ggplot2::theme_void() +
   ggplot2::theme(
@@ -308,4 +298,3 @@ kin_network1 <- ggraph::ggraph(network, layout = layout) +
 
 print(kin_network1)
 
-?gl.run.EMIBD9
