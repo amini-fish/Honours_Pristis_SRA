@@ -1,6 +1,9 @@
 setwd("C:/Users/samue/Desktop/Honours_Sawfish/analysis")
 
-install.packages("hierfstat")
+### LOAD REQUIRED PACKAGES ###
+
+#install.packages("hierfstat")
+#install.packages("graph4lg")
 devtools::install_version("ggplot2", "3.4.4")
 library(dartRverse)
 library(ggplot2)
@@ -8,101 +11,19 @@ library(hierfstat)
 library(dplyr)
 library(devtools)
 library(dartR.sexlinked)
-library(viridis)
-
-#save(gl, file = "Sawfish Prelim Data.RData") 
-
-data <- "Sawfish_SNPs_genotyped.csv"
-meta <- "Sawfish_meta2.csv"
-
-## Compile them into one gl
-
-data.gl <- dartR.base::gl.read.dart(filename = data, ind.metafile = meta); data.gl
-
-pop(data.gl) <- data.gl@other$ind.metrics$pop
-
-table(pop(data.gl))
-
-## Keep the Daly Inds
-
-Daly.gl <- gl.keep.pop(data.gl, pop.list = "Daly")
-
-## Make a smearplot to show before and after effects of filtering on data quality 
-
-gl.smearplot(Daly.gl, ind.labels = T, plot.theme = theme_classic(), plot.file = "unfiltered_smear_daly", plot.dir = "/pristis_data")
-
-
-################################################################################
-
-## Filtering steps
-
-Daly.gl <- dartR.sexlinked::gl.filter.sexlinked(Daly.gl, system = "xy")
-
-data.gl <- Daly.gl$autosomal
-
-## Get rid of unreliable loci
-
-gl.report.reproducibility(data.gl)
-
-data.gl <- dartR.base::gl.filter.reproducibility(data.gl, threshold = 0.99)
-
-## Callrate 
-
-dartR.base::gl.report.callrate(data.gl)
-
-data.gl <- dartR.base::gl.filter.callrate(data.gl, method = "loc", threshold = 0.99)
-
-#Get rid of low and super high read depth loci
-#do twice so you can zoom in
-
-dartR.base::gl.report.rdepth(data.gl)
-
-data.gl <- dartR.base::gl.filter.rdepth(data.gl, lower = 10, upper = 75)
-
-data.gl <- dartR.base::gl.filter.secondaries(data.gl)
-
-data.gl <- dartR.base::gl.filter.maf(data.gl, t = 0.1)
-
-#Very low filter – this is only to get rid of your really bad individuals
-
-dartR.base::gl.report.callrate(data.gl, method = "ind")
-
-data.gl <- dartR.base::gl.filter.callrate(data.gl, method = "ind", threshold = 0.9)
-
-#Always run this after removing individuals – removes loci that are no longer variable
-
-data.gl <- dartR.base::gl.filter.monomorphs(data.gl)
-
-### remove evidence of DNA contamination ## Important for kin finding 
-
-dartR.base::gl.report.heterozygosity(data.gl, method = "ind")
-
-data.gl <- dartR.base::gl.filter.heterozygosity(data.gl,t.lower = 0.2,  t.upper = 0.3)
-
-
-###Check our filtering steps ###
-
-data.gl@other$history
-
-gl.smearplot(data.gl, ind.labels = T)
-
-unfiltered_smear_daly <- readRDS("C:/Users/samue/AppData/Local/Temp/RtmpgTwQhk/unfiltered_smear_daly.RDS"); unfiltered_smear_daly
-
-data.gl
-
-################################################################################
-
-## Run some preliminary kin finding analyses
-
-#install.packages("graph4lg")
-install_github("green-striped-gecko/dartR.captive@dev_sam")
 library(dartR.captive)
 library(gplots)
 library(graph4lg)
 
+################################################################################
+
+### LOAD IN CLEAN GENOTYPE DATA ###
+
+gl <- get(load("C:/Users/samue/Desktop/Honours_Sawfish/analysis/daly_geno_clean.Rdata")); gl
+
 ## Run our analysis - using EMIBD9 implementation 
-?gl.run.EMIBD9
-daly.rel <- gl.run.EMIBD9(data.gl, 
+
+daly.rel <- gl.run.EMIBD9(gl, 
                           Inbreed = 1, 
                           emibd9.path =  "C:/EMIBD9")
 

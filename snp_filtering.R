@@ -90,7 +90,7 @@ save(data.gl, file = "pristis_geno_cleaned.Rdata")
 
 Daly.gl <- gl.keep.pop(data.gl, pop.list = "Daly")
 
-save(Daly.gl, file = "daly_geo_clean.Rdata")
+save(Daly.gl, file = "daly_geno_clean.Rdata")
 
 
 

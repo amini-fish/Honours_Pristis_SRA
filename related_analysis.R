@@ -3,6 +3,7 @@ setwd("C:/Users/samue/Desktop/Honours_Sawfish/analysis")
 install.packages("hierfstat")
 devtools::install_version("ggplot2", "3.4.4")
 install.packages("related")
+#install.packages("related", repos="http://R-Forge.R-project.org")
 
 library(dartRverse)
 library(ggplot2)
@@ -14,12 +15,14 @@ library(viridis)
 library(related)
 
 
-#install.packages("related", repos="http://R-Forge.R-project.org")
 
 ## Not run: 
 #---Read data into R---#
 
-geno <- gl2related(data.gl, 
+gl <- get(load("C:/Users/samue/Desktop/Honours_Sawfish/analysis/daly_geno_clean.Rdata")); gl
+
+
+geno <- gl2related(gl, 
                    outfile = "related.txt", , 
                    outpath = "C:/Users/samue/Desktop/Honours_Sawfish/analysis",
                    v = 5)
