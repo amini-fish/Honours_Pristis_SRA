@@ -56,10 +56,10 @@ dartR.base::gl.report.rdepth(data.gl)
 
 data.gl <- dartR.base::gl.filter.rdepth(data.gl, lower = 10, upper = 75)
 
-## Remove secondary loci
+## Remove secondary loci - important to keep unlinked loci
 
-data.gl <- dartR.base::gl.filter.secondaries(data.gl)
-
+data.gl <- dartR.base::gl.filter.secondaries(data.gl) 
+ 
 #Very low filter – this is only to get rid of your really bad individuals
 
 dartR.base::gl.report.callrate(data.gl, method = "ind")
@@ -84,9 +84,13 @@ data.gl@other$history
 
 ### SAVE CLEANED SNP DATA ###
 
+save(data.gl, file = "pristis_geno_cleaned.Rdata")
 
+### SAVE DALY RIVER INDS ###
 
+Daly.gl <- gl.keep.pop(data.gl, pop.list = "Daly")
 
+save(Daly.gl, file = "daly_geo_clean.Rdata")
 
 
 
