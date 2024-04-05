@@ -1,83 +1,3 @@
-setwd("C:/Users/samue/Desktop/Honours_Sawfish/analysis")
-
-install.packages("hierfstat")
-devtools::install_version("ggplot2", "3.4.4")
-library(dartRverse)
-library(ggplot2)
-library(hierfstat)
-library(dplyr)
-
-#save(gl, file = "Sawfish Prelim Data.RData") 
-
-data <- "Sawfish_SNPs_genotyped.csv"
-meta <- "Sawfish_meta2.csv"
-
-#Compile them into one gl
-
-raw.gl <- dartR.base::gl.read.dart(filename = data, ind.metafile = meta)
-gl.smearplot(raw.gl)
-
-
-data.gl <- dartR.base::gl.read.dart(filename = data, ind.metafile = meta); data.gl
-
-pop(data.gl) <- data.gl@other$ind.metrics$pop
-
-table(pop(data.gl))
-
-###### FILTERING #####
-
-## Get rid of sex linked loci 
-library(devtools)
-
-library(dartRverse)
-#install_github("green-striped-gecko/dartR.sexlinked@dev")
-library(dartR.sexlinked)
-
-data.gl <- gl.filter.sexlinked(data.gl, system = "xy")
-
-data.gl <- data.gl$autosomal
-
-## Get rid of unreliable loci
-
-gl.report.reproducibility(data.gl)
-
-data.gl <- dartR.base::gl.filter.reproducibility(data.gl, threshold = 0.99)
-  
-## Callrate 
-dartR.base::gl.report.callrate(data.gl)
-
-data.gl <- dartR.base::gl.filter.callrate(data.gl, method = "loc", threshold = 0.99)
-
-#Get rid of low and super high read depth loci
-#do twice so you can zoom in
-
-dartR.base::gl.report.rdepth(data.gl)
-
-data.gl <- dartR.base::gl.filter.rdepth(data.gl, lower = 10, upper = 75)
-
-data.gl <- dartR.base::gl.filter.secondaries(data.gl)
-
-#Very low filter – this is only to get rid of your really bad individuals
-dartR.base::gl.report.callrate(data.gl, method = "ind")
-
-data.gl <- dartR.base::gl.filter.callrate(data.gl, method = "ind", threshold = 0.99)
-
-#Always run this after removing individuals – removes loci that are no longer variable
-data.gl <- dartR.base::gl.filter.monomorphs(data.gl)
-
-gl.smearplot(data.gl)
-### remove evidence of DNA contamination ## Important for kin finding 
-dartR.base::gl.report.heterozygosity(data.gl, method = "ind")
-
-data.gl <- dartR.base::gl.filter.heterozygosity(data.gl,t.lower = 0.2,  t.upper = 0.25)
-
-###Check our filtering steps ###
-
-data.gl@other$history
-
-# Some popgen EDA 
-
-?gl.dist.pop
 dist <- gl.dist.pop(data.gl, method = "euclidean")
 
 gl.plot.heatmap(dist)
@@ -95,7 +15,7 @@ pc.plot <- gl.pcoa.plot(glPca = pc,
 
 pc.al <- gl.pcoa(Alligator)
 pc.al.plot <- gl.pcoa.plot(glPca = pc.al, 
-                          Alligator)
+                           Alligator)
 
 ## Nothing at all...
 
@@ -126,7 +46,7 @@ reshape(ar,
         idvar= "Pop", 
         varying = 1:7, 
         timevar = 
-        direction = "long")
+          direction = "long")
 
 colo <- viridis::magma(n = 10, begin = 0.2, end = 0.99)
 
@@ -152,10 +72,10 @@ daly.rel <- gl.run.EMIBD9(Daly, emibd9.path =  "C:/EMIBD9")
 
 cols <- viridis::magma(n = 100)
 dartR.captive::gl.grm.network(daly.rel$rel, 
-               x = Daly.gl, 
-               method = "gh", 
-               link.size = 1.2, 
-               title = "Daly River 2012 & 2013 Relatedness")
+                              x = Daly.gl, 
+                              method = "gh", 
+                              link.size = 1.2, 
+                              title = "Daly River 2012 & 2013 Relatedness")
 
 ibd9Tab <- daly.rel[[2]]; daly.rel
 
