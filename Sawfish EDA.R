@@ -1,4 +1,4 @@
-setwd("C:/Users/samue/Desktop/Honours - Sawfish/pristis_data")
+setwd("C:/Users/samue/Desktop/Honours_Sawfish/analysis")
 
 #install.packages("hierfstat")
 #devtools::install_version("ggplot2", "3.4.4")
@@ -14,7 +14,26 @@ meta <- read.csv("Sawfish_meta2.csv"); meta
 
 View(meta)
 
-## Lets just explore our data using some simple EDA
+?subset
+
+meta <- subset(meta, pop == "Daly", select = c(id, sex, TL_cm))
+meta
+
+cols <- c("skyblue", "orange")
+
+ggplot(data = meta, aes(x = sex, y = TL_cm)) +
+  geom_boxplot(fill = cols) +
+  ggtitle("Size distrbutions (TL) between sexes") +
+  xlab("Sex") +
+  ylab("Total Length (cm)") +
+  theme_minimal()
+
+
+lapply(meta, FUN = mean)
+
+
+
+  ## Lets just explore our data using some simple EDA
 
 ## Look at the number inds from each sex by population
 
