@@ -10,19 +10,10 @@
 ## instructions for xcode installation on Mac:
 ## https://clanfear.github.io/CSSS508/docs/compiling.html
 
+setwd("C:/Users/samue/Desktop/Honours_Sawfish/analysis")
 ### The CRAN packages: Rcpp and remotes
 install.packages('ggplot2', dep = TRUE)
 install.packages('data.table', dep = TRUE)
-
-library(dartRverse)
-library(adegenet)
-library(ggplot2)
-library(hierfstat)
-library(dplyr)
-library(devtools)
-library(dartR.sexlinked)
-library(viridis)
-
 
 install.packages("Rcpp")
 install.packages("remotes")
@@ -45,15 +36,39 @@ remotes::install_local("packages/genocalldart-master.zip", subdir = "genocalldar
 ## Alternative installation for gbasics and kinference
 install.packages(pkgs = c("gbasics", "kinference"), repos = "https://markbravington.github.io/Rmvb-repo")
 
-## Now, test the installs on this example analysis:
-load("data/SHS_cleaned.Rdata") ## you'll need to input the correct filepath for your OS
 library(kinference)
+library(dartRverse)
+library(adegenet)
+library(ggplot2)
+library(hierfstat)
+library(dplyr)
+library(devtools)
+library(gbasics)
+install.packages("fpeek")
+library(fpeek)
+install.packages("BinaryDosage")
+library(mvbutils)
+library(atease)
+library(vecless)
 
+##################################################################################
 
-pdf(file = "showShaneThisPdf.pdf")
+## Now, test the installs on this example analysis:
+gl <- get(load("C:/Users/samue/Desktop/Honours_Sawfish/analysis/daly_geno_clean.Rdata")) ## you'll need to input the correct filepath for your OS
 
+## make the gnelight object a vcf so it is compatible with gbasics 
 
-dups <- find_duplicates( SHS, max_diff_loci = 200, showPlot = TRUE)
+gl2vcf(gl, plink.bin.path = "C:/Users/samue/Desktop/Honours_Sawfish/analysis/plink", outfile = "clean_daly_pristis", outpath = "C:/Users/samue/Desktop/Honours_Sawfish/analysis")
+
+## Now we use gbasics function to make a snpg file 
+dalysnp <- read_vcf2snpgeno(vfilename = "clean_daly_pristis.vcf")
+
+daly.snp <- snpgeno("C:/Users/samue/Desktop/Honours_Sawfish/analysis/clean_daly_pristis.vcf")
+
+## Use kin_power to estimate how good our loci are for HSP estimation 
+??hsp_power
+
+dups <- find_duplicates(gl, max_diff_loci = 200, showPlot = TRUE)
 SHS_b <- SHS[ -c( drop_dups_pairwise_equiv( dups[,2:3])),]
 Lfish <- ilglk_geno(SHS_b, list(nclass = 1000, xlim = c(-1500,-1250) ))
 SHS_c <-  SHS_b[ ((Lfish > -1450) & (Lfish < -1275)), ]

@@ -14,7 +14,7 @@ library(dartR.sexlinked)
 library(dartR.captive)
 library(gplots)
 library(graph4lg)
-
+library(viridis)
 ################################################################################
 
 ### LOAD IN CLEAN GENOTYPE DATA ###
@@ -39,9 +39,49 @@ emibd.rel <- emibd.rel[,c(1,2,4)] # remove your third column (not needed and is 
 
 View(emibd.rel)
 
+## Calculate our summary statistics for relatedness...
+
+
+mean.rel <- mean(as.numeric(emibd.rel$value)) ## Mean is 0.0129 
+sd.rel <- sd(as.numeric(emibd.rel$value)) ## SD is +- 0.0323
+med <- median(as.numeric(emibd.rel$value)) ## 0.00575
+
+
+mean.rel
+sd.rel
+med
+
+### PLOT THE RAW RESULTS
+
+rel.hist <- ggplot(data = emibd.rel, aes(x = as.numeric(value))) +
+  geom_histogram(bins = 200, col = I("black")) +
+  labs(title = "Histogram of Kinship Coefficients (θ) from EMIBD9") +
+  xlab("Kinship (θ)") +
+  ylab("Count") +
+  theme(plot.title = element_text(hjust = 0.5, size = 14), 
+        axis.title.x = element_text(size = 12),
+        axis.title.y = element_text(size = 12), 
+        axis.text = element_text(size = 11)) +
+  geom_vline(xintercept = med, size = 1.1, col = "green") +
+  geom_vline(xintercept = 0.125, size = 1.1, col = "orange") +
+  geom_vline(xintercept = 0.250, size = 1.1, col = "skyblue") +
+  geom_vline(xintercept = 0.092, col = "black", size = 1, linetype="dotted") +
+  geom_vline(xintercept = 0.158, col = "black", size = 1,  linetype="dotted") +
+  geom_vline(xintercept = 0.204, col = "black", size = 1, linetype="dotted") +
+  geom_vline(xintercept = 0.296, col = "black", size = 1,  linetype="dotted") +
+  scale_x_continuous(n.breaks = 12) +
+  scale_y_continuous(n.breaks = 10) 
+  
+print(rel.hist)
+
+
+
 # A neat bit of code to kick out self comparisons
 
 #ibd9Tab <- ibd9Tab[ibd9Tab$Indiv1 != ibd9Tab$Indiv2,  c(1, 2, 21)]; ibd9Tab
+
+
+############# NEEDS TO BE UPDATED #####################
 
 # Combine together
 ibd9DT <- as.matrix(cbind(ibd9Tab, Cohort1, Cohort2, CC)); ibd9DT
@@ -111,33 +151,7 @@ emibd.siblings <- rbind(half.sibs, full.sibs); sibs.all
 sibs.all[!duplicated(sibs.all$r.1.2.), ] 
 sibs.all
 
-## Calculate our summary statistics for relatedness...
 
-str(ibd9DT)
-
-mean.rel <- mean(as.numeric(ibd9DT$r.1.2.)) ## Mean is 0.0129 
-sd.rel <- sd(as.numeric(ibd9DT$r.1.2.)) ## SD is +- 0.0323
-med <- median(as.numeric(ibd9DT$r.1.2.)) ## 0.00575
-
-rel.hist <- ggplot(data = ibd9DT, aes(x = as.numeric(r.1.2.))) +
-  geom_histogram(bins = 200, col = I("black")) +
-  labs(title = "Histogram of kinship coefficients (θ) between 2012 & 2013 sawfish") +
-  xlab("Kinship (θ)") +
-  ylab("Count") +
-    theme(plot.title = element_text(hjust = 0.5, size = 22), 
-        axis.title.x = element_text(size = 15),
-        axis.title.y = element_text(size = 15), 
-        axis.text = element_text(size = 13)) +
-  geom_vline(xintercept = med, size = 1.1, col = "green") +
-  geom_vline(xintercept = 0.125, size = 1.1, col = "orange") +
-  geom_vline(xintercept = 0.250, size = 1.1, col = "skyblue") +
-  geom_vline(xintercept = 0.092, col = "black", size = 1, linetype="dotted") +
-  geom_vline(xintercept = 0.158, col = "black", size = 1,  linetype="dotted") +
-  geom_vline(xintercept = 0.204, col = "black", size = 1, linetype="dotted") +
-  geom_vline(xintercept = 0.296, col = "black", size = 1,  linetype="dotted") +
-  scale_x_continuous(n.breaks = 12) +
-  scale_y_continuous(n.breaks = 10) + 
-  scale_color_manual(name = "kinships", values = c("mean" = "green", "half-sib" = "orange", "full-sib" = "skyblue")) 
 
 
 rel.hist
