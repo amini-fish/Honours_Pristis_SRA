@@ -1,30 +1,53 @@
-setwd("C:/Users/samue/OneDrive/Desktop/Honours/R/Honours_Pristis_SRA")
+
+setwd("C:/Users/samue/OneDrive/Desktop/Honours/analysis")
 
 ### LOAD REQUIRED PACKAGES ###
+install.packages("dartRverse")
 
-install.packages("dartRverse", "ggplot2", "hierfstat", "dplyr","devtools", "gplots",  "graph4lg", "viridis")
+install.packages("ggplot2")
+install.packages("hierfstat")
+install.packages("dplyr")
+install.packages("devtools")
+install.packages("gplots")
+install.packages("graph4lg")
+install.packages("viridis")
+install.packages("dartR.captive")
+install.packages("dartR.base")
+install.packages("dartR.sim")
+installed.packages("dartR.popgen")
+install.packages("ggraph")
 
-#install.packages("hierfstat")
-#install.packages("graph4lg")
+
 devtools::install_version("ggplot2", "3.4.4")
+install.packages("SNPRelate")
+
+if (!require("BiocManager", quietly = TRUE))
+  install.packages("BiocManager")
+
+BiocManager::install("SNPRelate")
+
+library(SNPRelate)
 library(dartRverse)
 library(ggplot2)
 library(hierfstat)
 library(dplyr)
 library(devtools)
-library(dartR.sexlinked)
+library(dartR.base)
 library(dartR.captive)
 library(gplots)
 library(graph4lg)
 library(viridis)
+library(ggraph)
 ################################################################################
 
 ### LOAD IN CLEAN GENOTYPE DATA ###
 
-gl <- get(load("C:/Users/samue/Desktop/Honours_Sawfish/analysis/daly_geno_clean.Rdata")); gl
+gl <- get(load("C:/Users/samue/OneDrive/Desktop/Honours/analysis/daly_geno_clean.Rdata")); gl
 
 ## Run our analysis - using EMIBD9 implementation 
 
+
+?gl.run.EMIBD9()
 daly.rel <- gl.run.EMIBD9(gl, 
                           Inbreed = 1, 
                           emibd9.path =  "C:/EMIBD9")
@@ -64,13 +87,13 @@ rel.hist <- ggplot(data = emibd.rel, aes(x = as.numeric(value))) +
         axis.title.x = element_text(size = 12),
         axis.title.y = element_text(size = 12), 
         axis.text = element_text(size = 11)) +
-  geom_vline(xintercept = med, size = 1.1, col = "green") +
-  geom_vline(xintercept = 0.125, size = 1.1, col = "orange") +
-  geom_vline(xintercept = 0.250, size = 1.1, col = "skyblue") +
-  geom_vline(xintercept = 0.092, col = "black", size = 1, linetype="dotted") +
-  geom_vline(xintercept = 0.158, col = "black", size = 1,  linetype="dotted") +
-  geom_vline(xintercept = 0.204, col = "black", size = 1, linetype="dotted") +
-  geom_vline(xintercept = 0.296, col = "black", size = 1,  linetype="dotted") +
+  geom_vline(xintercept = med, linewidth = 1.1, col = "green") +
+  geom_vline(xintercept = 0.125, linewidth = 1.1, col = "orange") +
+  geom_vline(xintercept = 0.250, linewidth = 1.1, col = "skyblue") +
+  geom_vline(xintercept = 0.092, col = "black", linewidth = 1, linetype="dotted") +
+  geom_vline(xintercept = 0.158, col = "black", linewidth = 1,  linetype="dotted") +
+  geom_vline(xintercept = 0.204, col = "black", linewidth = 1, linetype="dotted") +
+  geom_vline(xintercept = 0.296, col = "black", linewidth = 1,  linetype="dotted") +
   scale_x_continuous(n.breaks = 12) +
   scale_y_continuous(n.breaks = 10) 
   
@@ -80,7 +103,6 @@ print(rel.hist)
 
 
 ### Sim relatedness ###
-?gl.sim.relatedness
 hsp.sim <- gl.sim.relatedness(gl, rel = "half.sib", nboots = 50,  emibd9.path =  "C:/EMIBD9")
 
 fsp.sim <- dartR.captive::gl.sim.relatedness(gl, rel = "full.sib", nboots = 10, emibd9.path = "C:/EMIBD9")
@@ -164,16 +186,6 @@ emibd.siblings <- rbind(half.sibs, full.sibs); sibs.all
 sibs.all[!duplicated(sibs.all$r.1.2.), ] 
 sibs.all
 
-
-
-# #geom_density(alpha=.2, fill="#FF6666") Keep for a rainy day.
-colo <- viridisLite::viridis(n = 20)
-heatmap.2(daly.rel$rel, scale = "none", col = colo, 
-          trace = "none", density.info = "none", 
-          main = "Heatmap of relatedness (θ) in sawfish from the Daly River", 
-          dendrogram = c("none"))
-
-
 ### Lets reload our related individuals updated with names and make the heatmap...
 
 #######################################################################
@@ -211,7 +223,7 @@ df
 
 vertices <- dplyr::left_join(df, meta, by = "id") %>%
   dplyr::select(id, sex, Cohort)
-vertices <- as_data_frame(vertices, what = "vertices")
+vertices <- as_tibble(vertices, what = "vertices")
 
 vertices
 
