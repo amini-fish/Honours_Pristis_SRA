@@ -1,6 +1,8 @@
-setwd("C:/Users/samue/Desktop/Honours_Sawfish/analysis")
+setwd("C:/Users/samue/OneDrive/Desktop/Honours/R/Honours_Pristis_SRA")
 
 ### LOAD REQUIRED PACKAGES ###
+
+install.packages("dartRverse", "ggplot2", "hierfstat", "dplyr","devtools", "gplots",  "graph4lg", "viridis")
 
 #install.packages("hierfstat")
 #install.packages("graph4lg")
@@ -74,8 +76,20 @@ rel.hist <- ggplot(data = emibd.rel, aes(x = as.numeric(value))) +
   
 print(rel.hist)
 
+#######################################################################
 
 
+### Sim relatedness ###
+?gl.sim.relatedness
+hsp.sim <- gl.sim.relatedness(gl, rel = "half.sib", nboots = 50,  emibd9.path =  "C:/EMIBD9")
+
+fsp.sim <- dartR.captive::gl.sim.relatedness(gl, rel = "full.sib", nboots = 10, emibd9.path = "C:/EMIBD9")
+
+cus.sim <- gl.sim.relatedness(gl, rel = "cousin", nboots = 50, emibd9.path = "C:/EMIBD9")
+)
+
+
+#######################################################################
 # A neat bit of code to kick out self comparisons
 
 #ibd9Tab <- ibd9Tab[ibd9Tab$Indiv1 != ibd9Tab$Indiv2,  c(1, 2, 21)]; ibd9Tab
@@ -115,7 +129,6 @@ hist(as.numeric(ibd9DT$r.1.2.), breaks = 250)
 
 ## Simulate 10 HSP & FSP to get rough relatedness estimates - use > 10 LOL
 
-fsp.sim <- dartR.captive::gl.sim.relatedness(data.gl, rel = "full.sib", nboots = 10, emibd9.path = "C:/EMIBD9")
 
 
 hsp.sim <- dartR.captive::gl.sim.relatedness(data.gl, rel = "half.sib", nboots = 10, emibd9.path = "C:/EMIBD9")
@@ -153,9 +166,6 @@ sibs.all
 
 
 
-
-rel.hist
-
 # #geom_density(alpha=.2, fill="#FF6666") Keep for a rainy day.
 colo <- viridisLite::viridis(n = 20)
 heatmap.2(daly.rel$rel, scale = "none", col = colo, 
@@ -165,6 +175,10 @@ heatmap.2(daly.rel$rel, scale = "none", col = colo,
 
 
 ### Lets reload our related individuals updated with names and make the heatmap...
+
+#######################################################################
+
+### NETWORK PLOT FOR KIN ONLY ###
 
 ## write our sibling results as csv 
 
