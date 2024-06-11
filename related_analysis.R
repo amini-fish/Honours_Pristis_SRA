@@ -1,30 +1,33 @@
-setwd("C:/Users/samue/Desktop/Honours_Sawfish/analysis")
+setwd("C:/Users/samue/OneDrive/Desktop/Honours/analysis")
+
+### INSTALL WHERE NEEDED (assumed starting from new PC for reporducing) ### 
 
 install.packages("hierfstat")
 devtools::install_version("ggplot2", "3.4.4")
-install.packages("related")
-#install.packages("related", repos="http://R-Forge.R-project.org")
+#install.packages("related")
+install.packages("related", repos="http://R-Forge.R-project.org")
+install.packages("parrallel")
+
+### LOAD DESIRED PACKAGES INTO R ###
+
 
 library(dartRverse)
 library(ggplot2)
 library(hierfstat)
 library(dplyr)
 library(devtools)
-library(dartR.sexlinked)
 library(viridis)
 library(related)
-
-
 
 ## Not run: 
 #---Read data into R---#
 
-gl <- get(load("C:/Users/samue/Desktop/Honours_Sawfish/analysis/daly_geno_clean.Rdata")); gl
+gl <- get(load("C:/Users/samue/OneDrive/Desktop/Honours/analysis/daly_geno_clean.Rdata")); gl
 
 
 geno <- gl2related(gl, 
-                   outfile = "related.txt", , 
-                   outpath = "C:/Users/samue/Desktop/Honours_Sawfish/analysis",
+                   outfile = "related.txt", 
+                   outpath = "C:/Users/samue/OneDrive/Desktop/Honours/analysis",
                    v = 5)
 
 input <- readgenotypedata("related.txt")
@@ -36,6 +39,7 @@ output <- coancestry(genotype.data = input$gdata,
                      wang = 2, 
                      quellergt=2, 
                      allow.inbreeding = T,
+                     ci95.num.bootstrap = 10000,
                      rng.seed = 42)
 
 #---View Point Estimates---#
@@ -43,6 +47,8 @@ output$relatedness
 
 #---View 95
 output$relatedness.ci95
+
+output$delta7
 
 ## End(Not run)	
 
@@ -53,6 +59,25 @@ trioML <- data.frame(output$relatedness[, c(2,3,5)])
 
 mean <- mean(trioML$trioml)
 sd <- sd(trioML$trioml)
+
+mean
+sd
+
+freqs <- input$freqs
+
+simfreqs <- sample(freqs, 100, replace=F)
+View(simfreqs)
+
+View(input)
+### Simulate relatedness values ### 
+sim <- familysim(simfreqs, 100)
+sim$ID
+
+compare <- sample(input, 100, replace = T)
+
+compareestimators(compare, 200)
+
+input
 
 ## Extract the indiviudals with relatedness above x and y -  need to find a solid guideline for this assignment not arbitrary numbers.
 
@@ -176,10 +201,46 @@ kin_network1 <- ggraph::ggraph(network, layout = layout) +
 print(kin_network1)
 
 
+#### TRYING THE SIMULATIONS ### 
 
+freqs <- input$freqs
 
+simfreqs <- sample(freqs, 100, replace=F)
+View(simfreqs)
 
+View(input)
+### Simulate relatedness values ### 
 
+sim <- familysim(simfreqs, 100)
 
+output <- coancestry(sim, wang=1)
+
+#sim_rel <- coancestry(genotype.data = sim, 
+                     trioml = 2, 
+                     wang = 2, 
+                     allow.inbreeding = T,
+                     ci95.num.bootstrap = 100,
+                     rng.seed = 42)
+
+sim_rel <- cleanuprvals(output, 100)
+
+## First we need to subsample our larger dataset to 100 loci (due to an internal error associated with related package)
+
+subsample <- gl.subsample.loc(gl, 50, replace = F, v = 3, error.check = T)
+
+## Then we convert this subset into a related compatible text file 
+
+n100_geno <- gl2related(subsample, 
+                   outfile = "subsample_related.txt", , 
+                   outpath = "C:/Users/samue/OneDrive/Desktop/Honours/analysis",
+                   v = 5)
+
+## Load it back into R
+
+sim_input <- readgenotypedata("subsample_related.txt")
+
+## And compare the relatedness estimators to see how they go
+
+comp_est <- compareestimators(sim_input, 100)
 
   
