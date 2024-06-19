@@ -60,7 +60,7 @@ genotypes
 references <- data.frame(geno_dummy@fix)
 
 SNPS <- references$ID 
-
+SNPS <- gsub("_", "", SNPS)
 
 #genotypes$Locus <- SNPS
 #genotypes <- genotypes %>% relocate(Locus)
@@ -82,7 +82,7 @@ genotypes_3 <- data.frame(genotypes_2)
 #genotypes_tbl
 
 genotypes_3 <- genotypes_3 %>% 
-  separate_wider_delim(everything(), delim = "/", names_sep = "_.")
+  separate_wider_delim(everything(), delim = "/", names_sep = "_")
 
 genotypes_3
 
@@ -98,39 +98,66 @@ long_genos <- genotypes_3 %>%
   pivot_longer(
     cols = -Indiv, 
     names_to = c("Locus", "gene_copy"), 
-    names_sep = "_.", 
+    names_sep = "\\_", 
     values_to = "Allele"
   )
 
-long_genos
+long_genos ## Looking MINT!!! We got there! 
 
-##---------------------------------------------------------------------------------------------------------------------------------------------------------
+locus_names <- unique(long_genos$Locus)
+afreqs_ready <- long_genos %>%
+  count(Locus, Allele) %>%  
+  group_by(Locus) %>%
+  mutate(
+    Freq = n / sum(n),
+    Chrom = "Unk",
+    Pos = as.integer(factor(Locus, levels = locus_names))
+  ) %>%
+  ungroup() %>%
+  select(Chrom, Pos, Locus, Allele, Freq) %>%
+  arrange(Pos, desc(Freq)) %>%
+  mutate(AlleIdx = NA,
+         LocIdx = NA) %>%
+  filter(!is.na(Allele)) %>%
+  reindex_markers()
 
-### Let's give this a crack shall we...###
+ckmr <- create_ckmr(
+  D = afreqs_ready,
+  kappa_matrix = kappas[c("PO", "FS", "HS", "FC", "U"), ],
+  ge_mod_assumed = ge_model_TGIE,
+  ge_mod_true = ge_model_TGIE,
+  ge_mod_assumed_pars_list = list(epsilon = 0.005),
+  ge_mod_true_pars_list = list(epsilon = 0.005)
+)
 
-gl2plink(gl, plink.bin.path = "C:/Users/samue/OneDrive/Desktop/Honours/analysis/plink", bed.files = T, outfile = "cleaned_geno_plink", outpath = getwd())
+kappas
 
-### The way that has worked thus far ### 
+kappas[c("PO", "FS", "HS", "FC", "U"), ]
 
-View(as.matrix(gl))
+##-------------------------------------------------------------------------------------------------------------------------
 
-gl_wide <- as.matrix(gl)
+Qs <- simulate_Qij(
+  ckmr, 
+  calc_relats = c("PO", "FS", "HS", "FC", "U"),
+  sim_relats = c("PO", "FS", "HS", "FC", "U") 
+)
 
-## indnames are a character
+PO_U_logls <- extract_logls(
+  Qs,
+  numer = c(PO = 1),
+  denom = c(U = 1)
+)
 
-### This code has given me a data matrix where the columns are a locus, and rows are individuals...now I want the rownames to be considered a column...
+# And we can plot the distribution of those logl ratios for each
+# of the different true relationships. 
 
-has_rownames(gl_wide) #do we have rownames though?
+ggplot(
+  PO_U_logls,
+  aes(x = logl_ratio, fill = true_relat)
+) +
+  geom_density(alpha = 0.25)
 
-## NOPE
-
-geno_wide <- as_tibble(gl_wide)
-
-geno_wide$Indiv <- idnames
-
-geno_wide <- geno_wide %>% relocate(Indiv)
-
-geno_wide
-
-
-
+mc_sample_simple(
+  Qs,
+  nu = "PO"
+)
