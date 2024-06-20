@@ -306,6 +306,48 @@ remaining_pairs <- pw_4_LRTs %>%
 
 remaining_pairs # work from this now
 
+##------------------Half siblings and unrelated pairs--------------------------##
+
+HS_UP_gg <- Qs %>%
+  extract_logls(numer = c(HS = 1), denom = c(U = 1)) %>%
+  ggplot(aes(x = logl_ratio, fill = true_relat)) +
+  geom_density(alpha = 0.25) +
+  ggtitle("HS / UP Logl Ratio")
+
+HS_UP_gg
+
+HS_UP_logls <- extract_logls(
+  Qs,
+  numer = c(HS = 1),
+  denom = c(U = 1)
+)
+
+### Get our false positive and false negative rates to guide selection of T 
+mc_sample_simple(
+  Qs,
+  nu = "HS", 
+  de = "U", 
+  method = "IS", 
+  FNRs = c(0.3, 0.2, 0.1, 0.05, 0.01, 0.001, 0.0001))
+
+topHS_UP <- remaining_pairs %>% # remove the PO pairs 
+  arrange(desc(HSU)) %>%
+  filter(HSU > 52)
+
+topHS_UP
+
+seed(54) # for the jittering
+
+HS_UP_gg +
+  geom_jitter(
+    data = remaining_pairs,
+    mapping = aes(x = HSU, y = -0.002, colour = HSU > 52),
+    width = 0, 
+    height = 0.001, 
+    fill = NA,
+    shape = 21, 
+    size = 3
+  )
 
 ## -----------------Half siblings and first cousins ---------------------------##
 
@@ -329,19 +371,18 @@ mc_sample_simple(
   nu = "HS", 
   de = "FC", 
   method = "IS", 
-  FNRs = c(0.3, 0.2, 0.1, 0.05, 0.01, 0.001, 0.0001, 0.00000000001)
+  FNRs = c(0.3, 0.2, 0.1, 0.05, 0.01, 0.001, 0.0001)
 )
 
 #Quick visual inspection
-View(pw_4_LRTs)
-
 topHS_FC <- remaining_pairs %>% # remove the PO pairs 
   arrange(desc(HSFC)) %>%
   filter(HSFC > -0.732)
 
 topHS_FC
+topHS_UP
 
-seed(54) # for the jittering
+set.seed(54) # for the jittering
 
 HS_FC_gg +
   geom_jitter(
@@ -354,58 +395,60 @@ HS_FC_gg +
     size = 3
   )
 
-## Now we find our half-sibling pairs
 
-all_HSUlogl <- ggplot(remaining_pairs, aes(x = HSU)) + 
+remaining_pairs_2 <- remaining_pairs %>%
+  anti_join(bind_rows(topFS, topHS_FC), by = c("D2_indiv", "D1_indiv"))
+
+##---------------------First Cousins vs Unrelated -----------------------------##
+
+all_FCUlogl <- ggplot(remaining_pairs_2, aes(x = FCU)) + 
   geom_histogram(bins = 30)
 
-all_HSUlogl
+all_FCUlogl
 
-## HS FC 
-
-all_HSFC_logsl <- ggplot(remaining, aes(x = HSFC)) + 
-  geom_histogram(bins = 30)
-
-all_HSFC_logsl
-
-all_HSFC_logsl +
+all_FCU_logsl +
   xlim(-70, NA) +
-  ggtitle("Pairs with HSHAN > -70")
+  ggtitle("Pairs with First COusins > -70")
 
 set.seed(52)
 
-HS_FC_gg <- Qs %>%
-  extract_logls(numer = c(HS = 1), denom = c(FC = 1)) %>%
+FC_U_gg <- Qs %>%
+  extract_logls(numer = c(FC = 1), denom = c(U = 1)) %>%
   ggplot(aes(x = logl_ratio, fill = true_relat)) +
   geom_density(alpha = 0.25) +
-  ggtitle("FS/HS Logl Ratio")
+  ggtitle("FC/UP Logl Ratio")
+
+mc_sample_simple(
+  Qs,
+  nu = "FC", 
+  de = "U", 
+  method = "IS", 
+  FNRs = c(0.3, 0.2, 0.1, 0.05, 0.01, 0.001, 0.0001)
+)
 
 
-HS_FC_gg + 
+FC_U_gg + 
   geom_jitter(
-    data = remaining %>% filter(HSFC > -65),
-    mapping = aes(x = HSFC, y = -0.02),
+    data = remaining_pairs_2, 
+    mapping = aes(x = FCU, y = -0.02, colour =  FCU > 2.45),
     width = 0, 
     height = 0.01, 
     fill = NA,
-    shape = 21
+    shape = 21, 
+    size = 3
   ) +
-  coord_cartesian(xlim = c(-65, 125), ylim = c(NA, 0.06))
+  coord_cartesian(xlim = c(-50, 125), ylim = c(NA, 0.06))
 
-pw_4_LRTs
-topHS <- remaining %>% # remove the PO pairs 
-  arrange(desc(HSFC)) %>%
-  filter(HSFC > -10)
 
-topHS
-topFS
+topFC_UP <- remaining_pairs_2 %>% # remove the PO pairs 
+  arrange(desc(FCU)) %>%
+  filter(FCU > 2.45)
+
+topFC_UP
 
 ## Matches that of EMIBD9 output and related which is cool
 
 ## Now remove HSP from the data to leave essentially all unrelated and maybe a cousin
-
-remaining <- remaining %>%
-  anti_join(bind_rows(topFS, topHS), by = c("D2_indiv", "D1_indiv"))
 
 FC_U_gg <- Qs %>%
   extract_logls(numer = c(FC = 1), denom = c(U = 1)) %>%
