@@ -380,6 +380,7 @@ topHS_FC <- remaining_pairs %>% # remove the PO pairs
   filter(HSFC > -0.732)
 
 topHS_FC
+
 topHS_UP
 
 set.seed(54) # for the jittering
@@ -476,46 +477,4 @@ topFC <- remaining %>%
   filter(FCU > 0)
 
 
-topFC
-topHS
-topFS
 
-## -----------------------------------------------------------------------------
-
-## Check our results against the simulated unrelated pairs
-
-simU_FSHS <- Qs %>%
-  extract_logls(numer = c(FS = 1), denom = c(HS = 1)) %>% 
-  filter(true_relat == "U")
-
-ggplot() +
-  geom_density(
-    data = simU_FSHS,
-    mapping = aes(x = logl_ratio),
-    fill = "red",
-    alpha = 0.3
-  ) +
-  geom_density(
-    data = pw_4_LRTs, 
-    mapping = aes(x = FSHS)
-  )
-
-## Findings match our expecations and there is a small tail to the right where our FSP are expected to be 
-
-## HS FC
-
-simU_HSFC <- Qs %>%
-  extract_logls(numer = c(HS = 1), denom = c(FC = 1)) %>% 
-  filter(true_relat == c("U", "FC"))
-
-ggplot() +
-  geom_density(
-    data = simU_HSFC,
-    mapping = aes(x = logl_ratio),
-    fill = "red",
-    alpha = 0.3
-  ) +
-  geom_density(
-    data = pw_4_LRTs, 
-    mapping = aes(x = HSFC)
-  )
