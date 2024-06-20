@@ -46,8 +46,6 @@ gl <- get(load("C:/Users/samue/OneDrive/Desktop/Honours/analysis/daly_geno_clean
 
 ## Run our analysis - using EMIBD9 implementation 
 
-
-?gl.run.EMIBD9()
 daly.rel <- gl.run.EMIBD9(gl, 
                           Inbreed = 1, 
                           emibd9.path =  "C:/EMIBD9")
@@ -108,7 +106,8 @@ hsp.sim <- gl.sim.relatedness(gl, rel = "half.sib", nboots = 50,  emibd9.path = 
 fsp.sim <- dartR.captive::gl.sim.relatedness(gl, rel = "full.sib", nboots = 10, emibd9.path = "C:/EMIBD9")
 
 cus.sim <- gl.sim.relatedness(gl, rel = "cousin", nboots = 50, emibd9.path = "C:/EMIBD9")
-)
+
+
 
 
 #######################################################################
@@ -171,11 +170,11 @@ emibd.results <- data.frame(cbind(emibd.rel, emibd.sibs)); emibd.results
 
 #hsps - extract
 
-half.sibs <- subset(emibd.results, sibs == "hsp"); half.sibs
+half.sibs <- subset(emibd.results, emibd.sibs == "hsp"); half.sibs
 
 #fsps - extract 
 
-full.sibs <- subset(emibd.results, sibs == "fsp"); full.sibs
+full.sibs <- subset(emibd.results, emibd.sibs == "fsp"); full.sibs
 
 # ALLLLL stitched together now 
 

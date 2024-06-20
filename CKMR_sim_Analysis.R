@@ -12,8 +12,8 @@ if(system.file("bin", package = "CKMRsim") == "") {
   install_mendel(Dir = system.file(package = "CKMRsim"))
 }
 
-install.packages("remotes")
-remotes::install_github("eriqande/CKMRsim")
+#install.packages("remotes")
+#remotes::install_github("eriqande/CKMRsim")
 
 #### Good to go ####
 
@@ -32,8 +32,7 @@ dim(data)
 
 ## -----------------------------------------------------------------------------------------------------
 
-
-?gl2vcf
+## SKIP TO LINE 107 TO START ANALYSIS ## 
 
 position <- gl$other$loc.metrics$ChromPos_WhaleShark_v1_2500len
 
@@ -70,26 +69,22 @@ SNPS <- gsub("_", "", SNPS)
 
 rownames(genotypes) <- SNPS
 
-genotypes
-
-
 ### I want to transpose this genotype data 
 
 genotypes_2 <- t(genotypes)
 
-View(genotypes_2)
+genotypes_2
 
 genotypes_3 <- data.frame(genotypes_2)
-
-#genotypes_tbl <- tibble(genotypes)
-#genotypes_tbl
 
 genotypes_3 <- genotypes_3 %>% 
   separate_wider_delim(everything(), delim = "/", names_sep = "_")
 
 genotypes_3
 
-genotypes_3$Indiv <- idnames
+ind_names <- gl@ind.names
+
+genotypes_3$Indiv <- ind_names
 
 genotypes_3 <- genotypes_3 %>% relocate(Indiv)
 
@@ -105,9 +100,16 @@ long_genos <- genotypes_3 %>%
     values_to = "Allele"
   )
 
+## Write the data to a csv file so we can just load it in as a tibble for next time and bypass all the nonesense
+
+#write.csv(long_genos, file = "Pristis_genofor_CKMRsim.csv" )
+
+## START HERE ##
+
 long_genos ## Looking MINT!!! We got there! 
 
 locus_names <- unique(long_genos$Locus)
+
 afreqs_ready <- long_genos %>%
   count(Locus, Allele) %>%  
   group_by(Locus) %>%
@@ -124,94 +126,63 @@ afreqs_ready <- long_genos %>%
   filter(!is.na(Allele)) %>%
   reindex_markers()
 
+##----------------------------------------------------------------------------
+
+### Creating more dataframes for our analysis 
+
 ckmr <- create_ckmr(
   D = afreqs_ready,
-  kappa_matrix = kappas[c("PO", "FS", "HS", "FC", "U"), ],
+  kappa_matrix = kappas[c("FS", "HS", "FC", "U"), ],
   ge_mod_assumed = ge_model_TGIE,
   ge_mod_true = ge_model_TGIE,
   ge_mod_assumed_pars_list = list(epsilon = 0.005),
   ge_mod_true_pars_list = list(epsilon = 0.005)
 )
 
-kappas
+## -=-------------------------------------------------------------------------- 
 
-kappas[c("PO", "FS", "HS", "FC", "U"), ]
+### Select the dyads the want to examine further 
+## In ths case it is only FS, HS, and FC
+
+kappas # there are just individual ibd probabilites for each state based on relationship 
+
+kappas[c("FS", "HS", "FC", "U"), ]
 
 ##-------------------------------------------------------------------------------------------------------------------------
 
+##  Gives us our true relatedness log likelihoods based on the assumption of no linkage 
+##  Good filtering should minimise the effect - can't fully escape it with SNPs
+
+
+### OUR FPOS RATE 0.00002849002 i.e. 2.849 x 10-5
+
 Qs <- simulate_Qij(
   ckmr, 
-  calc_relats = c("PO", "FS", "HS", "FC", "U"),
-  sim_relats = c("PO", "FS", "HS", "FC", "U") 
+  calc_relats = c("FS", "HS", "FC", "U"),
+  sim_relats = c("FS", "HS", "FC", "U") 
 )
 
-PO_U_logls <- extract_logls(
+## FS and UP log likelhihood ratio example
+
+FS_U_logls <- extract_logls(
   Qs,
-  numer = c(PO = 1),
+  numer = c(FS = 1),
   denom = c(U = 1)
 )
 
-# And we can plot the distribution of those logl ratios for each
-# of the different true relationships. 
-
-ggplot(
-  PO_U_logls,
-  aes(x = logl_ratio, fill = true_relat)
-) +
-  geom_density(alpha = 0.25)
-
+### Get our false positive and false negative rates to guide selection of T 
 mc_sample_simple(
   Qs,
-  nu = "PO"
+  nu = "FS", 
+  de = "U", 
+  method = "IS"
 )
 
-## ------------------------ Fake chromosome stuff ----------------------------##
-fake_chromo_lengths <- geometric_chromo_lengths(
-  n = 16,
-  L = 2.4,
-  sl = 0.25
-)
+## 366 has a low enough fpos rate
 
-fake_chromo_lengths$chrom_length_plot
+## So we want a FPOS rate that is 
 
-set.seed(42)
-
-afreqs_link <- sprinkle_markers_into_genome(afreqs_ready, fake_chromo_lengths$chrom_lengths)
-
-ckmr_link <- create_ckmr(
-  D = afreqs_link,
-  kappa_matrix = kappas[c("PO", "FS", "HS", "FC", "U"), ],
-  ge_mod_assumed = ge_model_TGIE,
-  ge_mod_true = ge_model_TGIE,
-  ge_mod_assumed_pars_list = list(epsilon = 0.005),
-  ge_mod_true_pars_list = list(epsilon = 0.005)
-)
-
-Qs_link_BIG <- simulate_Qij(
-  ckmr_link, 
-  calc_relats = c("PO", "FS", "HS", "FC", "U"),
-  sim_relats = c("PO", "FS", "HS", "FC", "U"),
-  unlinked = FALSE, 
-  pedigree_list = pedigrees
-)
-
-Qs_link_BIG <- simulate_Qij(
-  ckmr_link, 
-  calc_relats = c("PO", "FS", "HS", "FC", "U"),
-  sim_relats = c("PO", "FS", "HS", "FC", "U"),
-  unlinked = FALSE, 
-  pedigree_list = pedigrees
-)
-
-## -------------------- Extract this for POPs/UP -------------------------------##
-
-PO_U_gg <- Qs %>%
-  extract_logls(numer = c(PO = 1), denom = c(U = 1)) %>%
-  ggplot(aes(x = logl_ratio, fill = true_relat)) +
-  geom_density(alpha = 0.25) +
-  ggtitle("PO/U Logl Ratio")
-
-PO_U_gg
+## -------------------- Extract this for FSP/UP -------------------------------##
 
 FS_U_gg <- Qs %>%
   extract_logls(numer = c(FS = 1), denom = c(U = 1)) %>%
@@ -220,8 +191,6 @@ FS_U_gg <- Qs %>%
   ggtitle("FS/U Logl Ratio")
 
 FS_U_gg
-
-## We are running into an error on line 190 - moev on and come back to this 
 
 ## ------------------------------------------------------------------------------
 
@@ -232,15 +201,16 @@ matchers <- find_close_matching_genotypes(
   CK = ckmr,
   max_mismatch = 500
 )
+
 matchers
 
 ## Run for all dyads 
 
 pw_4_LRTs <- lapply(
   X = list(
-    POU = c("PO", "U"),
-    POFS = c("PO", "FS"),
+    FSU = c("FS", "U"),
     FSHS = c("FS", "HS"),
+    HSU = c("HS", "U"), 
     HSFC = c("HS", "FC"), 
     FCU = c("FC", "U")
   ),
@@ -264,20 +234,20 @@ pw_4_LRTs
 
 ## ------------------------------------------------------------------------------
 
-## PO pairs (there shouldn't be any)
+## First lets look at FULL SIB pairs 
 
-topPO <- pw_4_LRTs %>%
-  arrange(desc(POU)) %>%
-  filter(POU > 0)
+topFS <- pw_4_LRTs %>%
+  arrange(desc(FSU)) %>%
+  filter(FSU > 0)
 
-topPO
+topFS
 
 set.seed(42)# for the jittering
 
-PO_U_gg +
+FS_U_gg +
   geom_jitter(
-    data = topPO,
-    mapping = aes(x = POU, y = -0.002, colour = POFS > 0),
+    data = topFS,
+    mapping = aes(x = FSU, y = -0.002, colour = FSU > 0),
     width = 0, 
     height = 0.001, 
     fill = NA,
@@ -294,16 +264,35 @@ FS_HS_gg <- Qs %>%
 
 FS_HS_gg
 
-topFS <- pw_4_LRTs %>% # remove the PO pairs 
+FS_HS_logls <- extract_logls(
+  Qs,
+  numer = c(FS = 1),
+  denom = c(HS = 1)
+)
+
+### Get our false positive and false negative rates to guide selection of T 
+mc_sample_simple(
+  Qs,
+  nu = "FS", 
+  de = "HS", 
+  method = "IS"
+)
+
+#Quick visual inspection
+View(pw_4_LRTs)
+
+topFS_HS <- pw_4_LRTs %>% # remove the PO pairs 
   arrange(desc(FSHS)) %>%
-  filter(FSHS > -20)
-topFS
+  filter(FSHS > 0)
+
+topFS_HS
 
 set.seed(54) # for the jittering
+
 FS_HS_gg +
   geom_jitter(
-    data = topFS,
-    mapping = aes(x = FSHS, y = -0.002),
+    data = pw_4_LRTs,
+    mapping = aes(x = FSHS, y = -0.002, colour = FSU > 0),
     width = 0, 
     height = 0.001, 
     fill = NA,
@@ -312,10 +301,67 @@ FS_HS_gg +
 
 ## So we have our FSPs but we need to keep going with the rest of the individuals 
 
-remaining <- pw_4_LRTs %>%
+remaining_pairs <- pw_4_LRTs %>%
   anti_join(bind_rows(topFS), by = c("D2_indiv", "D1_indiv"))
 
-remaining
+remaining_pairs # work from this now
+
+
+## -----------------Half siblings and first cousins ---------------------------##
+
+HS_FC_gg <- Qs %>%
+  extract_logls(numer = c(HS = 1), denom = c(FC = 1)) %>%
+  ggplot(aes(x = logl_ratio, fill = true_relat)) +
+  geom_density(alpha = 0.25) +
+  ggtitle("HS / FC Logl Ratio")
+
+HS_FC_gg
+
+HS_FC_logls <- extract_logls(
+  Qs,
+  numer = c(HS = 1),
+  denom = c(FC = 1)
+)
+
+### Get our false positive and false negative rates to guide selection of T 
+mc_sample_simple(
+  Qs,
+  nu = "HS", 
+  de = "FC", 
+  method = "IS", 
+  FNRs = c(0.3, 0.2, 0.1, 0.05, 0.01, 0.001, 0.0001, 0.00000000001)
+)
+
+#Quick visual inspection
+View(pw_4_LRTs)
+
+topHS_FC <- remaining_pairs %>% # remove the PO pairs 
+  arrange(desc(HSFC)) %>%
+  filter(HSFC > -0.732)
+
+topHS_FC
+
+seed(54) # for the jittering
+
+HS_FC_gg +
+  geom_jitter(
+    data = remaining_pairs,
+    mapping = aes(x = HSFC, y = -0.002, colour = HSFC > -0.732),
+    width = 0, 
+    height = 0.001, 
+    fill = NA,
+    shape = 21, 
+    size = 3
+  )
+
+## Now we find our half-sibling pairs
+
+all_HSUlogl <- ggplot(remaining_pairs, aes(x = HSU)) + 
+  geom_histogram(bins = 30)
+
+all_HSUlogl
+
+## HS FC 
 
 all_HSFC_logsl <- ggplot(remaining, aes(x = HSFC)) + 
   geom_histogram(bins = 30)
