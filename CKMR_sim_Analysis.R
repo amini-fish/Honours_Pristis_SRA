@@ -232,7 +232,7 @@ pw_4_LRTs <- lapply(
 
 pw_4_LRTs
 
-## ------------------------------------------------------------------------------
+## --------------------Full sib vs Half Sibs---------------------------------##
 
 ## First lets look at FULL SIB pairs 
 
@@ -286,6 +286,9 @@ topFS_HS <- pw_4_LRTs %>% # remove the PO pairs
   filter(FSHS > 0)
 
 topFS_HS
+
+topFS_HS$rel <- rep("full-sibs")
+
 
 set.seed(54) # for the jittering
 
@@ -379,9 +382,6 @@ topHS_FC <- remaining_pairs %>% # remove the PO pairs
   arrange(desc(HSFC)) %>%
   filter(HSFC > -0.732)
 
-topHS_FC
-
-topHS_UP
 
 set.seed(54) # for the jittering
 
@@ -396,6 +396,11 @@ HS_FC_gg +
     size = 3
   )
 
+## Check they match up
+topHS_FC
+topFC_UP
+
+topHS_FC$rel <- rep("half-sib")
 
 remaining_pairs_2 <- remaining_pairs %>%
   anti_join(bind_rows(topFS, topHS_FC), by = c("D2_indiv", "D1_indiv"))
@@ -446,6 +451,8 @@ topFC_UP <- remaining_pairs_2 %>% # remove the PO pairs
   filter(FCU > 2.45)
 
 topFC_UP
+topFC_UP$rel <- rep("first-cousin") 
+
 
 ## Matches that of EMIBD9 output and related which is cool
 
@@ -476,5 +483,8 @@ topFC <- remaining %>%
   arrange(desc(FCU)) %>%
   filter(FCU > 0)
 
+##-----------------Stitch all our kin pairs together--------------------------##
 
+sib_groups <- rbind(topFS_HS, topHS_FC, topFC_UP)
 
+sib_groups
