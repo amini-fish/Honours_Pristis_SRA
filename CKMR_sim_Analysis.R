@@ -29,8 +29,12 @@ data <- read.csv("outfile.csv")
 
 dim(data)
 
+install.packages("vcfR")
+library(vcfR)
+
 
 ## -----------------------------------------------------------------------------------------------------
+
 
 ## SKIP TO LINE 107 TO START ANALYSIS ## 
 
@@ -45,9 +49,6 @@ gl2vcf(gl,
        outfile = "outfile", 
        outpath = getwd())
 
-install.packages("vcfR")
-library(vcfR)
-
 geno_dummy <- read.vcfR("outfile.vcf")
 
 genotypes <- geno_dummy@gt
@@ -60,7 +61,7 @@ genotypes = genotypes[,!(names(genotypes) %in% drop)]
 genotypes
 
 references <- data.frame(geno_dummy@fix)
-
+references
 SNPS <- references$ID 
 SNPS <- gsub("_", "", SNPS)
 
@@ -130,6 +131,8 @@ afreqs_ready <- long_genos %>%
 
 ### Creating more dataframes for our analysis 
 
+
+?create_ckmr
 ckmr <- create_ckmr(
   D = afreqs_ready,
   kappa_matrix = kappas[c("FS", "HS", "FC", "U"), ],
@@ -153,6 +156,7 @@ kappas[c("FS", "HS", "FC", "U"), ]
 ##  Gives us our true relatedness log likelihoods based on the assumption of no linkage 
 ##  Good filtering should minimise the effect - can't fully escape it with SNPs
 
+?simulate_Qij
 
 ### OUR FPOS RATE 0.00002849002 i.e. 2.849 x 10-5
 
@@ -175,14 +179,11 @@ mc_sample_simple(
   Qs,
   nu = "FS", 
   de = "U", 
-  method = "IS"
-)
+  method = "IS", 
+  FNRs = c(0.3, 0.2, 0.1, 0.05, 0.01, 0.001)
+)   
 
-## 366 has a low enough fpos rate
-
-## So we want a FPOS rate that is 
-
-## -------------------- Extract this for FSP/UP -------------------------------##
+## -------------------- Extract this for FSP/UP------------------------------##
 
 FS_U_gg <- Qs %>%
   extract_logls(numer = c(FS = 1), denom = c(U = 1)) %>%
@@ -238,7 +239,7 @@ pw_4_LRTs
 
 topFS <- pw_4_LRTs %>%
   arrange(desc(FSU)) %>%
-  filter(FSU > 0)
+  filter(FSU > 0) ## FNEG rate of 0.0001
 
 topFS
 
@@ -246,7 +247,7 @@ set.seed(42)# for the jittering
 
 FS_U_gg +
   geom_jitter(
-    data = topFS,
+    data = pw_4_LRTs,
     mapping = aes(x = FSU, y = -0.002, colour = FSU > 0),
     width = 0, 
     height = 0.001, 
@@ -275,7 +276,8 @@ mc_sample_simple(
   Qs,
   nu = "FS", 
   de = "HS", 
-  method = "IS"
+  method = "IS", 
+  FNRs = c(0.3, 0.2, 0.1, 0.05, 0.01, 0.001)
 )
 
 #Quick visual inspection
@@ -283,7 +285,7 @@ View(pw_4_LRTs)
 
 topFS_HS <- pw_4_LRTs %>% # remove the PO pairs 
   arrange(desc(FSHS)) %>%
-  filter(FSHS > 0)
+  filter(FSHS > 83.6)
 
 topFS_HS
 
@@ -295,7 +297,7 @@ set.seed(54) # for the jittering
 FS_HS_gg +
   geom_jitter(
     data = pw_4_LRTs,
-    mapping = aes(x = FSHS, y = -0.002, colour = FSU > 0),
+    mapping = aes(x = FSHS, y = -0.002, colour = FSU > 83.6),
     width = 0, 
     height = 0.001, 
     fill = NA,
@@ -305,7 +307,7 @@ FS_HS_gg +
 ## So we have our FSPs but we need to keep going with the rest of the individuals 
 
 remaining_pairs <- pw_4_LRTs %>%
-  anti_join(bind_rows(topFS), by = c("D2_indiv", "D1_indiv"))
+  anti_join(bind_rows(topFS_HS), by = c("D2_indiv", "D1_indiv"))
 
 remaining_pairs # work from this now
 
@@ -339,7 +341,7 @@ topHS_UP <- remaining_pairs %>% # remove the PO pairs
 
 topHS_UP
 
-seed(54) # for the jittering
+set.seed(54) # for the jittering
 
 HS_UP_gg +
   geom_jitter(
@@ -403,7 +405,7 @@ topFC_UP
 topHS_FC$rel <- rep("half-sib")
 
 remaining_pairs_2 <- remaining_pairs %>%
-  anti_join(bind_rows(topFS, topHS_FC), by = c("D2_indiv", "D1_indiv"))
+  anti_join(bind_rows(topFS_HS, topHS_FC), by = c("D2_indiv", "D1_indiv"))
 
 ##---------------------First Cousins vs Unrelated -----------------------------##
 
@@ -453,35 +455,6 @@ topFC_UP <- remaining_pairs_2 %>% # remove the PO pairs
 topFC_UP
 topFC_UP$rel <- rep("first-cousin") 
 
-
-## Matches that of EMIBD9 output and related which is cool
-
-## Now remove HSP from the data to leave essentially all unrelated and maybe a cousin
-
-FC_U_gg <- Qs %>%
-  extract_logls(numer = c(FC = 1), denom = c(U = 1)) %>%
-  ggplot(aes(x = logl_ratio, fill = true_relat)) +
-  geom_density(alpha = 0.25) +
-  ggtitle("FC/U Logl Ratio")
-
-FC_U_gg
-
-remaining
-
-FC_U_gg + 
-  geom_jitter(
-    data = remaining %>% filter(FCU > -65),
-    mapping = aes(x = FCU, y = -0.02),
-    width = 0, 
-    height = 0.01, 
-    fill = NA,
-    shape = 21
-  ) +
-  coord_cartesian(xlim = c(-65, 125), ylim = c(NA, 0.06))
-
-topFC <- remaining %>% 
-  arrange(desc(FCU)) %>%
-  filter(FCU > 0)
 
 ##-----------------Stitch all our kin pairs together--------------------------##
 
