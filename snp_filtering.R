@@ -1,8 +1,8 @@
-setwd("C:/Users/samue/Desktop/Honours_Sawfish/analysis")
+setwd("C:/Users/samue/Desktop/Honours/analysis")
 
 #Install some packages
 
-#install_github("green-striped-gecko/dartR.sexlinked@dev")
+install_github("green-striped-gecko/dartR.sexlinked@dev")
 #install.packages("hierfstat")
 #devtools::install_version("ggplot2", "3.4.4")
 
@@ -72,11 +72,28 @@ data.gl <- dartR.base::gl.filter.monomorphs(data.gl)
 ## remove evidence of DNA contamination ## Important for kin finding 
 dartR.base::gl.report.heterozygosity(data.gl, method = "ind")
 
-data.gl <- dartR.base::gl.filter.heterozygosity(data.gl,t.lower = 0.2,  t.upper = 0.25)
-
-## Visualise our cleaned data 
+data.gl <- dartR.base::gl.filter.heterozygosity(data.gl,t.lower = 0.2,  t.upper = 0.5)## Visualise our cleaned data 
 
 gl.smearplot(data.gl)
+
+####################################################
+
+data.gl <- gl.filter.allna(data.gl)
+
+data.gl <- gl.filter.monomorphs(data.gl)
+
+### SAVE DALY RIVER INDS ###
+
+Daly.gl <- gl.keep.pop(data.gl, pop.list = "Daly")
+
+Daly.gl <- gl.filter.monomorphs(Daly.gl)
+
+save(Daly.gl, file = "daly_geno_clean.Rdata")
+
+## LD??
+
+gl.report.ld(Daly.gl, probar = T, nchunks = 8)
+
 
 ### Check our filtering steps ###
 
@@ -86,11 +103,7 @@ data.gl@other$history
 
 save(data.gl, file = "pristis_geno_cleaned.Rdata")
 
-### SAVE DALY RIVER INDS ###
 
-Daly.gl <- gl.keep.pop(data.gl, pop.list = "Daly")
-
-save(Daly.gl, file = "daly_geno_clean.Rdata")
 
 
 

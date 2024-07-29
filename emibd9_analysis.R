@@ -1,5 +1,5 @@
 
-setwd("C:/Users/samue/OneDrive/Desktop/Honours/analysis")
+setwd("C:/Users/samue/Desktop/Honours/analysis")
 
 ### LOAD REQUIRED PACKAGES ###
 install.packages("dartRverse")
@@ -26,6 +26,8 @@ if (!require("BiocManager", quietly = TRUE))
 
 BiocManager::install("SNPRelate")
 
+devtools::install_github("green-striped-gecko/dartR.captive@dev")
+
 library(SNPRelate)
 library(dartRverse)
 library(ggplot2)
@@ -38,17 +40,22 @@ library(gplots)
 library(graph4lg)
 library(viridis)
 library(ggraph)
+
 ################################################################################
 
 ### LOAD IN CLEAN GENOTYPE DATA ###
 
-gl <- get(load("C:/Users/samue/OneDrive/Desktop/Honours/analysis/daly_geno_clean.Rdata")); gl
+gl <- get(load("C:/Users/samue/Desktop/Honours/analysis/daly_geno_clean.Rdata")); gl
+
+gl
 
 ## Run our analysis - using EMIBD9 implementation 
 
 daly.rel <- gl.run.EMIBD9(gl, 
                           Inbreed = 1, 
                           emibd9.path =  "C:/EMIBD9")
+
+daly.rel
 
 ## Lets extract the relatedness data from our output file
 
@@ -95,20 +102,16 @@ rel.hist <- ggplot(data = emibd.rel, aes(x = as.numeric(value))) +
   scale_x_continuous(n.breaks = 12) +
   scale_y_continuous(n.breaks = 10) 
   
-print(rel.hist)
+print(rel.hist + theme_bw())
 
 #######################################################################
 
-
 ### Sim relatedness ###
-hsp.sim <- gl.sim.relatedness(gl, rel = "half.sib", nboots = 50,  emibd9.path =  "C:/EMIBD9")
+hsp.sim <- gl.sim.relatedness(gl, rel = "half.sib", nboots = 5,  emibd9.path =  "C:/EMIBD9")
 
-fsp.sim <- dartR.captive::gl.sim.relatedness(gl, rel = "full.sib", nboots = 10, emibd9.path = "C:/EMIBD9")
+fsp.sim <- dartR.captive::gl.sim.relatedness(gl, rel = "full.sib", nboots = 5, emibd9.path = "C:/EMIBD9")
 
 cus.sim <- gl.sim.relatedness(gl, rel = "cousin", nboots = 50, emibd9.path = "C:/EMIBD9")
-
-
-
 
 #######################################################################
 # A neat bit of code to kick out self comparisons
@@ -144,19 +147,19 @@ group_sd <- aggregate(x= as.numeric(ibd9DT$r.1.2.),
                        FUN = sd)
 
 group_sd
+
 #A quick look at the spread of rel values...
 
 hist(as.numeric(ibd9DT$r.1.2.), breaks = 250)
 
 ## Simulate 10 HSP & FSP to get rough relatedness estimates - use > 10 LOL
 
-
-
 hsp.sim <- dartR.captive::gl.sim.relatedness(data.gl, rel = "half.sib", nboots = 10, emibd9.path = "C:/EMIBD9")
 
 
 ## Putative siblings - we use the 95% CI from the simulations to groundtruth our sibling relationships as mean rel is 0.01
-emibd.sibs <- ifelse(emibd.rel$value >= 0.092 & emibd.rel$value <= 0.158, 
+
+emibd.sibs <- ifelse(emibd.rel$value >= 0.092 & emibd.rel$value <= 0.180, 
                yes = "hsp", 
                no = ifelse(emibd.rel$value >=0.204 & emibd.rel$value <= 0.296, 
                            yes = "fsp",
@@ -257,4 +260,82 @@ kin_network1 <- ggraph::ggraph(network, layout = layout) +
 
 
 print(kin_network1)
+
+## Fucking around
+
+emibd.rel
+
+write.csv(emibd.rel, "daly_rel_all.csv")
+
+relate <- read.csv("daly_rel_all.csv"); relate
+
+meta2 <- read.csv("Daly_meta.csv")
+
+## Distance 
+
+library(sf)
+
+df = read.csv('Daly_meta.csv') %>%
+st_as_sf(coords=c("Long","Lat"), crs=4326)
+
+df <- df%>%st_transform(3857)
+
+df
+
+distance <- st_distance(x = df, by_element = F, which = "Euclidean")
+
+View(distance)
+
+dist_km <- distance/1000 #as km
+
+dist_km
+
+meta2$id
+
+rownames(dist_km) <- meta2$id
+colnames(dist_km) <- meta2$id
+
+dist_km <- as.data.frame(dist_km)
+
+dist_km <- pw_mat_to_df(as.matrix(dist_km))
+
+View(dist_km)
+
+## now we need to merge the distance matrix as a column to the other data - so we can run corMLPE
+
+
+dist_data <- dist_km %>% arrange(id_link)
+
+dist_data <- rownames_to_column(dist_km, "X")
+
+dist_data
+
+## Both datasets in same oder...
+
+meta3 <- read.csv("pairs_meta.csv")
+
+meta3 <- meta3 %>% arrange(X)
+
+head(meta3)
+
+## get pairwise year of capture comparisons (thanks Mirjam)
+
+meta3$year_caught_diff <- ifelse(meta3$Year_caught_id1 == meta3$Year_caught_id2, "Same", "Different")
+
+## Do the same for Catch Set
+
+meta3$catch_set_diff <- ifelse(meta3$Catch.Set_ID1 == meta3$Catch.Set_ID2, "Same", "Different")
+
+## Do the same for Billabong
+
+meta3$billabong_diff <- ifelse(meta3$Billabong_ID1 == meta3$Billabong_ID2, "Same", "Different")
+
+
+dim(dist_data)
+dist <- dist_data[, 5]
+
+meta4 <- cbind(meta3, dist)
+
+write.csv(meta4, "corMLPE_data.csv")
+
 
