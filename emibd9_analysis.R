@@ -310,6 +310,9 @@ dist_data <- rownames_to_column(dist_km, "X")
 
 dist_data
 
+dim(dist_data)
+dist <- dist_data[, 5]
+
 ## Both datasets in same oder...
 
 meta3 <- read.csv("pairs_meta.csv")
@@ -322,17 +325,34 @@ head(meta3)
 
 meta3$year_caught_diff <- ifelse(meta3$Year_caught_id1 == meta3$Year_caught_id2, "Same", "Different")
 
+meta3 <- meta3 %>%
+  unite("year_caught_both",
+      as.character("Year_caught_id1"),as.character("Year_caught_id2"), 
+      sep = ":",
+      remove = FALSE, na.rm = FALSE) %>%
+  mutate(year_caught_both=factor(year_caught_both))
+
 ## Do the same for Catch Set
 
 meta3$catch_set_diff <- ifelse(meta3$Catch.Set_ID1 == meta3$Catch.Set_ID2, "Same", "Different")
+
+meta3 <- meta3  %>%
+unite("catch_set_both",
+      as.character("Catch.Set_ID1"),as.character("Catch.Set_ID2"), 
+      sep = ":",
+      remove = FALSE, na.rm = FALSE) %>%
+  mutate(catch_set_both=factor(catch_set_both))
 
 ## Do the same for Billabong
 
 meta3$billabong_diff <- ifelse(meta3$Billabong_ID1 == meta3$Billabong_ID2, "Same", "Different")
 
-
-dim(dist_data)
-dist <- dist_data[, 5]
+meta3 <- meta3 %>% 
+  unite("billabong_both",
+        as.character("Billabong_ID1"),as.character("Billabong_ID2"), 
+        sep = ":",
+        remove = FALSE, na.rm = FALSE) %>%
+  mutate(billabong_both=factor(billabong_both))
 
 meta4 <- cbind(meta3, dist)
 

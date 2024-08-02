@@ -62,4 +62,5 @@ pairs_meta_id12
         as.character("Year_caught_id1"),as.character("Year_caught_id2"), 
         sep = ".",
         remove = FALSE, na.rm = FALSE) %>%
+    
   mutate(year_caught_both=factor(year_caught_both))
