@@ -1,5 +1,22 @@
 ### This may be the solution to simulating expected relatedness vals between dyads whilst accounting for an incredibly low fPos level ###
 
+######################################
+##                                  ##      
+##        GO to line 126            ##
+##            dumbass               ##
+##                                  ##
+##                                  ##
+######################################
+
+install.packages("vcfR")
+
+#install.packages("remotes")
+#remotes::install_github("eriqande/CKMRsim")
+
+if(system.file("bin", package = "CKMRsim") == "") {
+  install_mendel(Dir = system.file(package = "CKMRsim"))
+}
+
 library(devtools)
 
 #install_github("https://github.com/eriqande/CKMRsim/tree/master") 
@@ -8,28 +25,22 @@ library(CKMRsim)
 library(dartRverse)
 library(tidyverse)
 
-if(system.file("bin", package = "CKMRsim") == "") {
-  install_mendel(Dir = system.file(package = "CKMRsim"))
-}
-
-#install.packages("remotes")
-#remotes::install_github("eriqande/CKMRsim")
-
 #### Good to go ####
 
 setwd("C:/Users/samue/Desktop/Honours/analysis")
 
-gl <- get(load("C:/Users/samue/OneDrive/Desktop/Honours/analysis/daly_geno_clean.Rdata")); gl
+gl <- get(load("C:/Users/samue/Desktop/Honours/analysis/daly_geno_clean.Rdata")); gl
 
 gl <- gl.filter.monomorphs(gl)
 
-gl.write.csv(gl, outfile = "outfile.csv", outpath = "C:/Users/samue/OneDrive/Desktop/Honours/analysis", verbose = NULL)
+gl.write.csv(gl, outfile = "outfile.csv", outpath = "C:/Users/samue/Desktop/Honours/analysis", verbose = NULL)
 
 data <- read.csv("outfile.csv")
 
 dim(data)
 
-install.packages("vcfR")
+data
+
 library(vcfR)
 
 
@@ -38,20 +49,17 @@ library(vcfR)
 
 ## SKIP TO LINE 107 TO START ANALYSIS ## 
 
-position <- gl$other$loc.metrics$ChromPos_WhaleShark_v1_2500len
-
-chrom <- gl$other$loc.metrics$Chrom_WhaleShark_v1_2500len
-
 gl2vcf(gl, 
-       plink.bin.path = "C:/Users/samue/OneDrive/Desktop/Honours/analysis/plink", 
-       snp.pos = "ChromPos_WhaleShark_v1_2500len", 
-       snp.chr = "Chrom_WhaleShark_v1_2500len",
-       outfile = "outfile", 
+      plink.bin.path = "C:/Users/samue/Desktop/Honours/analysis/plink", 
+     outfile = "outfile", 
        outpath = getwd())
 
 geno_dummy <- read.vcfR("outfile.vcf")
 
+geno_dummy
+
 genotypes <- geno_dummy@gt
+
 genotypes <- data.frame(genotypes)
 
 genotypes
@@ -65,10 +73,12 @@ references
 SNPS <- references$ID 
 SNPS <- gsub("_", "", SNPS)
 
-#genotypes$Locus <- SNPS
-#genotypes <- genotypes %>% relocate(Locus)
+genotypes$Locus <- SNPS
+genotypes <- genotypes %>% relocate(Locus)
 
 rownames(genotypes) <- SNPS
+
+genotypes
 
 ### I want to transpose this genotype data 
 
@@ -80,6 +90,12 @@ genotypes_3 <- data.frame(genotypes_2)
 
 genotypes_3 <- genotypes_3 %>% 
   separate_wider_delim(everything(), delim = "/", names_sep = "_")
+
+length(gl@ind.names)
+
+genotypes_3 <- genotypes_3[-1,]
+
+gen
 
 genotypes_3
 
@@ -111,6 +127,7 @@ long_genos <- read.csv("Pristis_genofor_CKMRsim.csv"); long_genos
 
 long_genos ## Looking MINT!!! We got there! 
 
+long_genos <- long_genos[,-1]
 locus_names <- unique(long_genos$Locus)
 
 afreqs_ready <- long_genos %>%
@@ -135,7 +152,7 @@ afreqs_ready <- long_genos %>%
 
 ckmr <- create_ckmr(
   D = afreqs_ready,
-  kappa_matrix = kappas[c("FS", "HS", "FC", "U"), ],
+  kappa_matrix = kappas[c("FS", "HS", "HFC", "U"), ],
   ge_mod_assumed = ge_model_TGIE,
   ge_mod_true = ge_model_TGIE,
   ge_mod_assumed_pars_list = list(epsilon = 0.005),
@@ -149,21 +166,19 @@ ckmr <- create_ckmr(
 
 kappas # there are just individual ibd probabilites for each state based on relationship 
 
-kappas[c("FS", "HS", "FC", "U"), ]
+kappas[c("FS", "HS", "HFC", "U"), ]
 
 ##-------------------------------------------------------------------------------------------------------------------------
 
 ##  Gives us our true relatedness log likelihoods based on the assumption of no linkage 
 ##  Good filtering should minimise the effect - can't fully escape it with SNPs
 
-?simulate_Qij
-
 ### OUR FPOS RATE 0.00002849002 i.e. 2.849 x 10-5
 
 Qs <- simulate_Qij(
   ckmr, 
-  calc_relats = c("FS", "HS", "FC", "U"),
-  sim_relats = c("FS", "HS", "FC", "U") 
+  calc_relats = c("FS", "HS", "HFC", "U"),
+  sim_relats = c("FS", "HS", "HFC", "U") 
 )
 
 ##------------------------Linkage Model-----------------------------------##
@@ -193,7 +208,7 @@ afreqs_link <- sprinkle_markers_into_genome(afreqs_ready, fake_chromo_lengths$ch
 
 ckmr_link <- create_ckmr(
   D = afreqs_link,
-  kappa_matrix = kappas[c("PO", "FS", "HS", "FC", "U"), ],
+  kappa_matrix = kappas[c("FS", "HS", "HFC", "U"), ],
   ge_mod_assumed = ge_model_TGIE,
   ge_mod_true = ge_model_TGIE,
   ge_mod_assumed_pars_list = list(epsilon = 0.005),
@@ -204,8 +219,8 @@ ckmr_link <- create_ckmr(
 
 Qs_link_BIG <- simulate_Qij(
   ckmr_link, 
-  calc_relats = c("FS", "HS", "FC", "U"),
-  sim_relats = c("FS", "HS", "FC", "U"),
+  calc_relats = c("FS", "HS", "HFC", "U"),
+  sim_relats = c("FS", "HS", "HFC", "U"),
   unlinked = FALSE, 
   pedigree_list = pedigrees
 )
@@ -219,6 +234,8 @@ matchers <- find_close_matching_genotypes(
   CK = ckmr,
   max_mismatch = 500
 )
+
+head(long_genos)
 
 matchers
 
