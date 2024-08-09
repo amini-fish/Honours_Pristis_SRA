@@ -330,17 +330,14 @@ column_names <- paste0("L", rep(1:num_levels, each = num_sub_levels), "-", rep(1
 # Print to check
 colnames(loc_data)<- column_names
 
-View(loc_data)
-
-nrow(loc_data)
-
 genotype_data <- cbind(ind_names, loc_data)
 
 genotype_matrix <- as.matrix(genotype_data)
 
-## Convert it to a genlight
 
-gl <- as.genlight(genotype_matrix)
+View(genotype_matrix)## Convert it to a genlight
+
+gl <- adegenet::as.genlight(genotype_matrix)
 
 # Assign individual names (if you have them)
 indNames(gl) <- rownames(genotype_data)  # Or use genotype_data$IndividualID if that was your column name
@@ -348,9 +345,12 @@ indNames(gl) <- rownames(genotype_data)  # Or use genotype_data$IndividualID if 
 # Inspect the genlight object
 print(gl)
 
-ncol(gl)
-getwd()
-tempdir()
+gl.run.EMIBD9(gl, 
+              Inbreed = 1, 
+              emibd9.path =  "C:/EMIBD9", 
+              outpath = getwd(), 
+              )
+
 
 gl2EMIBD9(gl, 
           Inbreed = 1, 
