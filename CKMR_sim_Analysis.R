@@ -146,9 +146,12 @@ afreqs_ready <- long_genos %>%
   filter(!is.na(Allele)) %>%
   reindex_markers()
 
+afreqs_ready 
+
 ##----------------------------------------------------------------------------
 
 ### Creating more dataframes for our analysis 
+?create_ckmr
 
 ckmr <- create_ckmr(
   D = afreqs_ready,
@@ -180,6 +183,8 @@ Qs <- simulate_Qij(
   calc_relats = c("FS", "HS", "HFC", "U"),
   sim_relats = c("FS", "HS", "HFC", "U") 
 )
+
+
 
 ##------------------------Linkage Model-----------------------------------##
 
@@ -708,3 +713,5 @@ topFC_UP$rel <- rep("first-cousin")
 sib_groups <- rbind(topFS_HS, topHS_FC, topFC_UP)
 
 sib_groups
+
+?simulate_and_calc_Q

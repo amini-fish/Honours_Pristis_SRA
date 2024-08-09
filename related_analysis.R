@@ -1,4 +1,4 @@
-setwd("C:/Users/samue/OneDrive/Desktop/Honours/analysis")
+setwd("C:/Users/samue/Desktop/Honours/analysis")
 
 ### INSTALL WHERE NEEDED (assumed starting from new PC for reporducing) ### 
 
@@ -22,15 +22,17 @@ library(related)
 ## Not run: 
 #---Read data into R---#
 
-gl <- get(load("C:/Users/samue/OneDrive/Desktop/Honours/analysis/daly_geno_clean.Rdata")); gl
+gl <- get(load("C:/Users/samue/Desktop/Honours/analysis/daly_geno_clean.Rdata")); gl
 
 
 geno <- gl2related(gl, 
                    outfile = "related.txt", 
-                   outpath = "C:/Users/samue/OneDrive/Desktop/Honours/analysis",
+                   outpath = "C:/Users/samue/Desktop/Honours/analysis",
                    v = 5)
 
 input <- readgenotypedata("related.txt")
+
+input
 
 #---Calculate Relatedness---#
 
@@ -209,6 +211,7 @@ simfreqs <- sample(freqs, 100, replace=F)
 View(simfreqs)
 
 View(input)
+
 ### Simulate relatedness values ### 
 
 sim <- familysim(simfreqs, 100)
@@ -226,7 +229,7 @@ sim_rel <- cleanuprvals(output, 100)
 
 ## First we need to subsample our larger dataset to 100 loci (due to an internal error associated with related package)
 
-subsample <- gl.subsample.loc(gl, 50, replace = F, v = 3, error.check = T)
+subsample <- gl.subsample.loc(gl, 100, replace = F, v = 3, error.check = T)
 
 ## Then we convert this subset into a related compatible text file 
 
@@ -243,4 +246,9 @@ sim_input <- readgenotypedata("subsample_related.txt")
 
 comp_est <- compareestimators(sim_input, 100)
 
-  
+comp_est
+
+
+sim <- familysim(sim_input$freqs, 100)
+
+

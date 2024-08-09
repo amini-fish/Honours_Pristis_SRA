@@ -47,7 +47,7 @@ library(ggraph)
 
 gl <- get(load("C:/Users/samue/Desktop/Honours/analysis/daly_geno_clean.Rdata")); gl
 
-gl
+gl <- gl.filter.monomorphs(gl)
 
 ## Run our analysis - using EMIBD9 implementation 
 

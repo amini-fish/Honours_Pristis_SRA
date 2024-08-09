@@ -1,0 +1,113 @@
+
+library(dartRverse)
+library(related)
+library(tidyverse)
+library(dplyr)
+
+## Set the WD
+
+setwd("C:/Users/samue/Desktop/coancestry_sims")
+
+## Load in simulated data from COANCESTRY
+
+## Run related on this genotype data
+
+co_sims <- read.csv("coancestry_sims_results_2.csv", stringsAsFactors = T)
+
+sims_df <- read.csv("simulated_rel.csv", stringsAsFactors = T)
+
+sims_df
+
+sims2 <- read.csv("simulated_rel.csv", stringsAsFactors = T)
+
+sims2$True_rel <- sims2$True_rel/2
+
+cor(sims2$EMIBD9, sims2$True_rel)
+
+## NOTE - remember that you can just substitute co_sims and sims_df :)) 
+
+sims_df$EMIBD9 <- sims_df$EMIBD9*2
+
+sims_df <- sims_df %>% 
+  pivot_longer(cols = c(TrioML, Wang, LynchRd, Ritland, QuellerGt, EMIBD9), 
+               names_to = "Estimator", 
+               values_to = "rel")
+
+
+
+sims_df <- sims_df %>%
+  filter(Estimator != c("DyadML","LynchLi"))
+
+
+sims_df$theta <- sims_df$rel/2
+  
+sims_df$Sibtype <- factor(sims_df$Sibtype, levels =  c("FSP", "HSP", "FCP", "HFCP", "UP"))
+
+sims_df$Estimator <- factor(sims_df$Estimator, levels = c("LynchRd", "QuellerGt", "Ritland", "TrioML", "Wang", "EMIBD9"))
+
+levels(sims_df$Sibtype)
+
+True_rel <- data.frame(
+  Sibtype = factor(c("FSP", "HSP", "FCP", "HFCP", "UP"), levels = c("FSP", "HSP", "FCP", "HFCP", "UP")),
+  yintercept = c(0.25, 0.125, 0.0625, 0.03125, 0)
+  )
+
+
+## now in approrpriate format to plot...
+
+plot1 <- ggplot(data = sims_df, aes(x = Estimator, y = theta, fill = Estimator)) +
+  geom_boxplot(alpha = 0.5)+
+  theme_bw()+
+  scale_fill_brewer(palette = "Dark2") 
+
+p1 <- plot1 + 
+  facet_wrap(~Sibtype)
+
+p1 <- p1 + 
+  ggtitle("Simulated Relatedness Estimates for Relevant Kin-Types") +
+  ylab("Relatedness")+
+  theme(plot.title = element_text(hjust = 0.5, size = 14)) + 
+  geom_hline(data = True_rel, aes(yintercept = yintercept), linetype = "dotted", linewidth = 0.8, alpha = 0.7, col = "black")
+
+print(p1)  
+
+dat_text <- data.frame(
+  Estimator = factor(c("LynchRd", "QuellerGt", "Ritland", "TrioML", "Wang", "EMIBD9")),
+  label = c(0.9941, 0.9937, 0.9918, 0.9958, 0.9921, 0.9946), 
+  x = c(0.0, 0.0, 0.0, 0.0, 0.0, 0.0))  # X position for text
+
+levels(dat_text$Estimator)
+levels(sims_df$Estimator)
+
+base_plot <- ggplot(sims_df, aes(x = theta, fill = Sibtype)) +
+  geom_density(alpha = 0.5, position = "identity")+
+  theme_bw()+
+  ggtitle("Distribution of simulated relatedness coefficients") +
+  xlab("Kinship") +
+  ylab("Frequency")+
+  facet_wrap(~Estimator) +
+  scale_fill_brewer(palette = "Dark2") +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  geom_vline(data = True_rel, aes(xintercept = yintercept), linetype = "dotted", linewidth = 0.7, alpha = 0.9, col = "black")
+
+print(base_plot)
+
+
+tag_facet <- function(p, open = "(", close = ")", tag_pool = letters, x = -Inf, y = Inf, 
+                      hjust = -0.5, vjust = 1.5, fontface = 2, family = "", ...) {
+  
+  gb <- ggplot_build(p)
+  lay <- gb$layout$layout
+  tags <- cbind(lay, label = paste0(open, tag_pool[lay$PANEL], close), x = x, y = y)
+  p + geom_text(data = tags, aes_string(x = "x", y = "y", label = "label"), ..., hjust = hjust, 
+                vjust = vjust, fontface = fontface, family = family, inherit.aes = FALSE) 
+}
+
+my_tag <- c("cor = 0.9941", "cor = 0.9937", "cor = 0.9918", "cor = 0.9958", "cor = 0.9921", "cor = 0.9946" )
+tag_facet(base_plot, 
+          x = 0.17, y = 120, 
+          vjust = 1, hjust = -0.25,
+          open = "", close = "",
+          size = 4,
+          tag_pool = my_tag)
+ 
