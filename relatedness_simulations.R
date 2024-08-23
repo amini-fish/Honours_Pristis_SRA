@@ -6,7 +6,7 @@ library(dplyr)
 
 ## Set the WD
 
-setwd("C:/Users/samue/Desktop/coancestry_sims")
+setwd("C:/Users/samue/Desktop/Relatedness_simulations")
 
 ## Load in simulated data from COANCESTRY
 
@@ -14,7 +14,7 @@ setwd("C:/Users/samue/Desktop/coancestry_sims")
 
 co_sims <- read.csv("coancestry_sims_results_2.csv", stringsAsFactors = T)
 
-sims_df <- read.csv("simulated_rel.csv", stringsAsFactors = T)
+sims_df <- read.csv("simulated_rel.csv", stringsAsFactors = T) ## We use this as it has EMIBD9 EM1 results in it too 
 
 sims_df
 
@@ -22,18 +22,25 @@ sims2 <- read.csv("simulated_rel.csv", stringsAsFactors = T)
 
 sims2$True_rel <- sims2$True_rel/2
 
-cor(sims2$EMIBD9, sims2$True_rel)
+Em1 <- cor(sims2$EMIBD9, sims2$True_rel)
+round(Em1, 4)
+Em2 <- cor(sims2$EM2_EMIBD9, sims2$True_rel)
+
+round(Em2, 3)
 
 ## NOTE - remember that you can just substitute co_sims and sims_df :)) 
 
 sims_df$EMIBD9 <- sims_df$EMIBD9*2
 
+sims_df$EM2_EMIBD9 <- sims_df$EM2_EMIBD9*2
+
+sims_df <- sims_df %>%
+  dplyr::rename("EM1" = "EMIBD9", "EM2"= "EM2_EMIBD9")
+
 sims_df <- sims_df %>% 
-  pivot_longer(cols = c(TrioML, Wang, LynchRd, Ritland, QuellerGt, EMIBD9), 
+  pivot_longer(cols = c(TrioML, Wang, LynchRd, Ritland, QuellerGt, EM1, EM2), 
                names_to = "Estimator", 
                values_to = "rel")
-
-
 
 sims_df <- sims_df %>%
   filter(Estimator != c("DyadML","LynchLi"))
@@ -43,7 +50,8 @@ sims_df$theta <- sims_df$rel/2
   
 sims_df$Sibtype <- factor(sims_df$Sibtype, levels =  c("FSP", "HSP", "FCP", "HFCP", "UP"))
 
-sims_df$Estimator <- factor(sims_df$Estimator, levels = c("LynchRd", "QuellerGt", "Ritland", "TrioML", "Wang", "EMIBD9"))
+
+sims_df$Estimator <- factor(sims_df$Estimator, levels = c("LynchRd", "QuellerGt", "Ritland", "TrioML", "Wang", "EM1", "EM2"))
 
 levels(sims_df$Sibtype)
 
@@ -66,15 +74,18 @@ p1 <- plot1 +
 p1 <- p1 + 
   ggtitle("Simulated Relatedness Estimates for Relevant Kin-Types") +
   ylab("Relatedness")+
-  theme(plot.title = element_text(hjust = 0.5, size = 14)) + 
+  theme(plot.title = element_text(hjust = 0.5, size = 15), 
+        strip.text = element_text(size = 12), 
+        axis.text = element_text(size = 11), 
+        axis.title = element_text(size = 13)) + 
   geom_hline(data = True_rel, aes(yintercept = yintercept), linetype = "dotted", linewidth = 0.8, alpha = 0.7, col = "black")
 
 print(p1)  
 
 dat_text <- data.frame(
-  Estimator = factor(c("LynchRd", "QuellerGt", "Ritland", "TrioML", "Wang", "EMIBD9")),
-  label = c(0.9941, 0.9937, 0.9918, 0.9958, 0.9921, 0.9946), 
-  x = c(0.0, 0.0, 0.0, 0.0, 0.0, 0.0))  # X position for text
+  Estimator = factor(c("LynchRd", "QuellerGt", "Ritland", "TrioML", "Wang", "EM1", "EM2")),
+  label = c(0.9941, 0.9937, 0.9918, 0.9958, 0.9921, 0.9955, 0.9946), 
+  x = c(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0))  # X position for text
 
 levels(dat_text$Estimator)
 levels(sims_df$Estimator)
@@ -103,9 +114,11 @@ tag_facet <- function(p, open = "(", close = ")", tag_pool = letters, x = -Inf, 
                 vjust = vjust, fontface = fontface, family = family, inherit.aes = FALSE) 
 }
 
-my_tag <- c("cor = 0.9941", "cor = 0.9937", "cor = 0.9918", "cor = 0.9958", "cor = 0.9921", "cor = 0.9946" )
-tag_facet(base_plot, 
-          x = 0.17, y = 120, 
+
+my_tag <- c("cor = 0.9941", "cor = 0.9937", "cor = 0.9918", "cor = 0.9958", "cor = 0.9921", "cor = 0.9955", "cor = 0.9946" )
+
+tag_facet(base_plot,
+    x = 0.17, y = 120, 
           vjust = 1, hjust = -0.25,
           open = "", close = "",
           size = 4,
