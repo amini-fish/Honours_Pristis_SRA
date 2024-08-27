@@ -37,6 +37,8 @@ sims_df$EM2_EMIBD9 <- sims_df$EM2_EMIBD9*2
 sims_df <- sims_df %>%
   dplyr::rename("EM1" = "EMIBD9", "EM2"= "EM2_EMIBD9")
 
+sims_df
+
 sims_df <- sims_df %>% 
   pivot_longer(cols = c(TrioML, Wang, LynchRd, Ritland, QuellerGt, EM1, EM2), 
                names_to = "Estimator", 
@@ -66,7 +68,7 @@ True_rel <- data.frame(
 plot1 <- ggplot(data = sims_df, aes(x = Estimator, y = theta, fill = Estimator)) +
   geom_boxplot(alpha = 0.5)+
   theme_bw()+
-  scale_fill_brewer(palette = "Dark2") 
+  scale_fill_brewer(palette = "RdYlGn") 
 
 p1 <- plot1 + 
   facet_wrap(~Sibtype)
@@ -97,7 +99,7 @@ base_plot <- ggplot(sims_df, aes(x = theta, fill = Sibtype)) +
   xlab("Kinship") +
   ylab("Frequency")+
   facet_wrap(~Estimator) +
-  scale_fill_brewer(palette = "Dark2") +
+  scale_fill_brewer(palette = "RdYlGn") +
   theme(plot.title = element_text(hjust = 0.5)) +
   geom_vline(data = True_rel, aes(xintercept = yintercept), linetype = "dotted", linewidth = 0.7, alpha = 0.9, col = "black")
 
@@ -118,9 +120,41 @@ tag_facet <- function(p, open = "(", close = ")", tag_pool = letters, x = -Inf, 
 my_tag <- c("cor = 0.9941", "cor = 0.9937", "cor = 0.9918", "cor = 0.9958", "cor = 0.9921", "cor = 0.9955", "cor = 0.9946" )
 
 tag_facet(base_plot,
-    x = 0.17, y = 120, 
+    x = 0.22, y = 120, 
           vjust = 1, hjust = -0.25,
           open = "", close = "",
           size = 4,
           tag_pool = my_tag)
  
+
+##------------------------------------------------------------------------------
+
+## Calculating RMSE 
+
+#rmse(data$actual, data$predicted) for structure of commands
+
+my_rmse <- function(obs, pred) {
+  sqrt(mean((obs-pred)^2))
+}
+
+rmse_em1 <- my_rmse(sims_df$EM1, sims_df$True_rel); rmse_em1
+
+rmse_em2 <- my_rmse(sims_df$EM2, sims_df$True_rel); rmse_em2
+
+rmse_trioml <- my_rmse(sims_df$TrioML, sims_df$True_rel); rmse_trioml
+
+rmse_wang <- my_rmse(sims_df$Wang, sims_df$True_rel); rmse_wang
+
+rmse_LyLi <- my_rmse(sims_df$LynchLi, sims_df$True_rel); rmse_LyLi
+
+rmse_LyRd <- my_rmse(sims_df$LynchRd, sims_df$True_rel); rmse_LyRd
+
+rmse_Qgt <- my_rmse(sims_df$QuellerGt, sims_df$True_rel); rmse_Qgt
+
+rmse_rit <- my_rmse(sims_df$Ritland, sims_df$True_rel); rmse_rit
+
+RMSE_all <- rbind(rmse_em1, rmse_em2, rmse_LyRd, rmse_Qgt, rmse_rit, rmse_trioml, rmse_wang)
+
+RMSE_all <- data.frame(RMSE_all[order(RMSE_all), ])
+
+colnames(RMSE_all) <- c("RMSE"); RMSE_all
