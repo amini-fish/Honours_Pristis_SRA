@@ -51,9 +51,13 @@ gl <- gl.filter.monomorphs(gl)
 
 ## Run our analysis - using EMIBD9 implementation 
 
+nInd(gl)
+
+29*(29-1)/2
+
 daly.rel <- gl.run.EMIBD9(gl, 
                           Inbreed = 1, 
-                          emibd9.path =  "C:/EMIBD9")
+                          emibd9.path =  "C:/EMIBD")
 
 daly.rel
 
@@ -69,28 +73,32 @@ emibd.rel <- emibd.rel[,c(1,2,4)] # remove your third column (not needed and is 
 
 View(emibd.rel)
 
-## Calculate our summary statistics for relatedness...
+save(emibd.rel, file = "emibd_results.csv")
 
+## Calculate our summary statistics for relatedness...
+emibd.rel
 
 mean.rel <- mean(as.numeric(emibd.rel$value)) ## Mean is 0.0129 
 sd.rel <- sd(as.numeric(emibd.rel$value)) ## SD is +- 0.0323
 med <- median(as.numeric(emibd.rel$value)) ## 0.00575
 
 
-mean.rel
-sd.rel
-med
+mean.rel #0.013
+sd.rel #0.033
+med #0.0052
 
 ### PLOT THE RAW RESULTS
 
 rel.hist <- ggplot(data = emibd.rel, aes(x = as.numeric(value))) +
   geom_histogram(bins = 200, col = I("black")) +
-  labs(title = "Histogram of Kinship Coefficients (θ) from EMIBD9") +
+  ggtitle("Histogram of Cancestry Coefficients for all pairwise comparisons") +
   xlab("Kinship (θ)") +
   ylab("Count") +
+  theme_bw()
+
+rel.hist <- rel.hist + 
   theme(plot.title = element_text(hjust = 0.5, size = 14), 
-        axis.title.x = element_text(size = 12),
-        axis.title.y = element_text(size = 12), 
+        axis.title = element_text(size = 12), 
         axis.text = element_text(size = 11)) +
   geom_vline(xintercept = med, linewidth = 1.1, col = "green") +
   geom_vline(xintercept = 0.125, linewidth = 1.1, col = "orange") +
@@ -102,22 +110,11 @@ rel.hist <- ggplot(data = emibd.rel, aes(x = as.numeric(value))) +
   scale_x_continuous(n.breaks = 12) +
   scale_y_continuous(n.breaks = 10) 
   
-print(rel.hist + theme_bw())
+print(rel.hist)
 
-#######################################################################
+################################################################################
 
-### Sim relatedness ###
-hsp.sim <- gl.sim.relatedness(gl, rel = "half.sib", nboots = 5,  emibd9.path =  "C:/EMIBD9")
-
-fsp.sim <- dartR.captive::gl.sim.relatedness(gl, rel = "full.sib", nboots = 5, emibd9.path = "C:/EMIBD9")
-
-cus.sim <- gl.sim.relatedness(gl, rel = "cousin", nboots = 50, emibd9.path = "C:/EMIBD9")
-
-#######################################################################
-# A neat bit of code to kick out self comparisons
-
-#ibd9Tab <- ibd9Tab[ibd9Tab$Indiv1 != ibd9Tab$Indiv2,  c(1, 2, 21)]; ibd9Tab
-
+################################################################################
 
 ############# NEEDS TO BE UPDATED #####################
 
@@ -151,11 +148,6 @@ group_sd
 #A quick look at the spread of rel values...
 
 hist(as.numeric(ibd9DT$r.1.2.), breaks = 250)
-
-## Simulate 10 HSP & FSP to get rough relatedness estimates - use > 10 LOL
-
-hsp.sim <- dartR.captive::gl.sim.relatedness(data.gl, rel = "half.sib", nboots = 10, emibd9.path = "C:/EMIBD9")
-
 
 ## Putative siblings - we use the 95% CI from the simulations to groundtruth our sibling relationships as mean rel is 0.01
 
@@ -203,19 +195,25 @@ sibs  <- read.csv("emibd_sibs_daly.csv")
 meta <- read.csv("Daly_meta.csv")
 
 meta <- meta[meta$id %in% c(sibs$id_1, sibs$id_2),]
+
+meta
 data <- sibs
+
 kinNWdata <- data %>% 
-  dplyr::mutate(Cohort_gap = cohort1 - cohort2) %>%
-  dplyr::select(id_1, id_2, relatedness, Cohort_gap)
+  dlyr::mutate(billabong_both, paste(df$n, "-", df$s))%>%
+  #dplyr::mutate(Cohort_gap = cohort1 - cohort2) %>%
+  dplyr::select(id_1, id_2, relatedness, Billabong_ID2) #, Cohort_gap
 
 meta
 
 #Calculate the gap between cohorts, and add it into a new dataframe
 
-kinNWdata$Cohort_gap[kinNWdata$Cohort_gap<0] <- 1 # this replaces all of our "negative" cohort gaps so that we have a tidy plot
+#kinNWdata$Cohort_gap[kinNWdata$Cohort_gap<0] <- 1 # this replaces all of our "negative" cohort gaps so that we have a tidy plot
 
+billabong <- c("different", "same", "same", "different", "same", "different", "different", "same", "same", "same")
+
+kinNWdata$billabong <- billabong
 kinNWdata
-
 #This makes our data frame from which the pariwise network plot between select individuals will be drawn 
 
 network <- igraph::graph_from_data_frame(d = kinNWdata, directed = TRUE) 
@@ -225,6 +223,7 @@ df
 
 vertices <- dplyr::left_join(df, meta, by = "id") %>%
   dplyr::select(id, sex, Cohort)
+
 vertices <- as_tibble(vertices, what = "vertices")
 
 vertices
@@ -236,28 +235,37 @@ layout <- ggraph::create_layout(network, layout = 'igraph',
                                 circular = FALSE, algorithm = 'fr')
 attributes(layout)
 
+
+
 kin_network1 <- ggraph::ggraph(network, layout = layout) + 
   ggraph::geom_edge_link( 
-    aes(width = Cohort_gap,
-        edge_colour = factor(relatedness)),
+    aes(width = 2,
+        edge_colour = factor(relatedness), 
+        edge_linetype = billabong),
     #arrow = arrow(length = unit(3, 'mm')), 
     #end_cap = ggraph::circle(2, 'mm'),
     edge_alpha = 1) +
-  ggraph::scale_edge_width(range = c(1,2), breaks = c(0,1), name = "Cohort Gap") +
+  #ggraph::scale_edge_width(range = c(2), breaks = c(0,1), name = "Cohort Gap") +
+  ggraph::scale_edge_linetype_manual(values = c("dotted", "solid"), 
+                                     name = "Capture Location", 
+                                     aesthetics = "edge_linetype") +
   ggraph::scale_edge_colour_manual(values = c("skyblue", "orange"),
                                    name = "Kin Type",
                                    aesthetics = "edge_colour",
                                    na.value = "grey50") +
   ggraph::geom_node_point(aes(shape = sex),
-                          size = 4) +
+                          size = 5) +
   ggraph::geom_node_text( aes(label = df$id), repel = TRUE, 
-                          size = 4, color = "black") +
+                          size = 5, color = "black") +
   ggplot2::scale_color_manual(values = adegenet::funky(9), na.value = "grey50") +
   ggplot2::theme_void() +
+  ggplot2::ggtitle("Sibling Groups from Pilot Study Data")+
   ggplot2::theme(
+    plot.title = element_text(hjust = 0.5, size = 15),
     legend.position = "right",
-    plot.margin = unit(rep(1,4), "cm")) 
-
+    plot.margin = unit(rep(1,5), "cm"), 
+    margin = margin(20, 0, 40, 10))
+  
 
 print(kin_network1)
 

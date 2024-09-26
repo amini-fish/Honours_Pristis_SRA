@@ -10,7 +10,6 @@ install.packages("parrallel")
 
 ### LOAD DESIRED PACKAGES INTO R ###
 
-
 library(dartRverse)
 library(ggplot2)
 library(hierfstat)
@@ -30,16 +29,12 @@ geno <- gl2related(gl,
                    outpath = "C:/Users/samue/Desktop/Honours/analysis",
                    v = 5)
 
-input <- readgenotypedata("related.txt")
-
-input
-
 #---Calculate Relatedness---#
 
+GenotypeData
+
 output <- coancestry(genotype.data = input$gdata, 
-                     trioml = 2, 
-                     wang = 2, 
-                     quellergt=2, 
+                     trioml = 2,
                      allow.inbreeding = T,
                      ci95.num.bootstrap = 10000,
                      rng.seed = 42)

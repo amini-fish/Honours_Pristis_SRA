@@ -1,3 +1,6 @@
+## Analysing the simulated data 
+
+## Load in the relevant packages
 
 library(dartRverse)
 library(related)
@@ -6,13 +9,9 @@ library(dplyr)
 
 ## Set the WD
 
-setwd("C:/Users/samue/Desktop/Relatedness_simulations")
+setwd("C:/Users/samue/Desktop/Honours/Relatedness_simulations")
 
 ## Load in simulated data from COANCESTRY
-
-## Run related on this genotype data
-
-co_sims <- read.csv("coancestry_sims_results_2.csv", stringsAsFactors = T)
 
 sims_df <- read.csv("simulated_rel.csv", stringsAsFactors = T) ## We use this as it has EMIBD9 EM1 results in it too 
 
@@ -40,12 +39,12 @@ sims_df <- sims_df %>%
 sims_df
 
 sims_df <- sims_df %>% 
-  pivot_longer(cols = c(TrioML, Wang, LynchRd, Ritland, QuellerGt, EM1, EM2), 
+  pivot_longer(cols = c(TrioML, LynchRd, Ritland, QuellerGt, EM1, EM2), 
                names_to = "Estimator", 
                values_to = "rel")
 
 sims_df <- sims_df %>%
-  filter(Estimator != c("DyadML","LynchLi"))
+  filter(Estimator != c("DyadML","LynchLi", "Wang"))
 
 
 sims_df$theta <- sims_df$rel/2
@@ -53,7 +52,7 @@ sims_df$theta <- sims_df$rel/2
 sims_df$Sibtype <- factor(sims_df$Sibtype, levels =  c("FSP", "HSP", "FCP", "HFCP", "UP"))
 
 
-sims_df$Estimator <- factor(sims_df$Estimator, levels = c("LynchRd", "QuellerGt", "Ritland", "TrioML", "Wang", "EM1", "EM2"))
+sims_df$Estimator <- factor(sims_df$Estimator, levels = c("LynchRd", "QuellerGt", "Ritland", "TrioML", "EM1", "EM2"))
 
 levels(sims_df$Sibtype)
 
@@ -78,33 +77,32 @@ p1 <- p1 +
   ylab("Relatedness")+
   theme(plot.title = element_text(hjust = 0.5, size = 15), 
         strip.text = element_text(size = 12), 
-        axis.text = element_text(size = 11), 
+        axis.text = element_text(size = 11, angle = 90), 
         axis.title = element_text(size = 13)) + 
   geom_hline(data = True_rel, aes(yintercept = yintercept), linetype = "dotted", linewidth = 0.8, alpha = 0.7, col = "black")
 
 print(p1)  
 
 dat_text <- data.frame(
-  Estimator = factor(c("LynchRd", "QuellerGt", "Ritland", "TrioML", "Wang", "EM1", "EM2")),
-  label = c(0.9941, 0.9937, 0.9918, 0.9958, 0.9921, 0.9955, 0.9946), 
-  x = c(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0))  # X position for text
+  Estimator = factor(c("LynchRd", "QuellerGt", "Ritland", "TrioML", "EM1", "EM2")),
+  label = c(0.9941, 0.9937, 0.9918, 0.9958, 0.9955, 0.9946), 
+  x = c(0.0, 0.0, 0.0, 0.0, 0.0, 0.0))  # X position for text
 
 levels(dat_text$Estimator)
 levels(sims_df$Estimator)
 
 base_plot <- ggplot(sims_df, aes(x = theta, fill = Sibtype)) +
-  geom_density(alpha = 0.5, position = "identity")+
+  geom_density(alpha = 1, position = "identity")+
   theme_bw()+
   ggtitle("Distribution of simulated relatedness coefficients") +
   xlab("Kinship") +
   ylab("Frequency")+
   facet_wrap(~Estimator) +
   scale_fill_brewer(palette = "RdYlGn") +
-  theme(plot.title = element_text(hjust = 0.5)) +
+  theme(plot.title = element_text(hjust = 0.5, margin = margin(0, 0, 20, 0))) +
   geom_vline(data = True_rel, aes(xintercept = yintercept), linetype = "dotted", linewidth = 0.7, alpha = 0.9, col = "black")
 
 print(base_plot)
-
 
 tag_facet <- function(p, open = "(", close = ")", tag_pool = letters, x = -Inf, y = Inf, 
                       hjust = -0.5, vjust = 1.5, fontface = 2, family = "", ...) {
@@ -116,22 +114,40 @@ tag_facet <- function(p, open = "(", close = ")", tag_pool = letters, x = -Inf, 
                 vjust = vjust, fontface = fontface, family = family, inherit.aes = FALSE) 
 }
 
+my_tag <- c("r = 0.994", "r = 0.994", "r = 0.992", "r = 0.996", "r = 0.992", "r = 0.996", "r = 0.995")
 
-my_tag <- c("cor = 0.9941", "cor = 0.9937", "cor = 0.9918", "cor = 0.9958", "cor = 0.9921", "cor = 0.9955", "cor = 0.9946" )
-
-tag_facet(base_plot,
-    x = 0.22, y = 120, 
+base_plot <- tag_facet(base_plot,
+    x = 0.18, y = 110, 
           vjust = 1, hjust = -0.25,
           open = "", close = "",
-          size = 4,
+          size = 3,
           tag_pool = my_tag)
  
+my_tag2 <- c("RMSE = 0.020", "RMSE = 0.020", "RMSE = 0.023", "RMSE = 0.0170", "RMSE = 0.030", "RMSE = 0.029", "RMSE = 0.018")
 
+plot2 <- tag_facet(base_plot,
+          x = 0.17, y = 120, 
+          vjust = 1, hjust = -0.25,
+          open = "", close = "",
+          size = 3,
+          tag_pool = my_tag2)
+
+print(plot2)
+
+#tiff(filename = "plot2.tiff",
+     width = 25, height = 15, units = "cm", 
+     compression = c("lzw"),
+     bg = "white", res = 1500)
+
+plot2
+
+dev.off()
 ##------------------------------------------------------------------------------
 
 ## Calculating RMSE 
 
 #rmse(data$actual, data$predicted) for structure of commands
+
 
 my_rmse <- function(obs, pred) {
   sqrt(mean((obs-pred)^2))

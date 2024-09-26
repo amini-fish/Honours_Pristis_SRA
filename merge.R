@@ -57,10 +57,20 @@ pairs_meta_id12
 
 
 
-#pairs_meta_id12 <- pairs_meta_id12 %>%
+pairs_meta_id12 <- pairs_meta_id12 %>%
   unite("year_caught_both",
-        as.character("Year_caught_id1"),as.character("Year_caught_id2"), 
+        as.character("Year_caught_id1"), as.character("Year_caught_id2"), 
         sep = ".",
         remove = FALSE, na.rm = FALSE) %>%
-    
-  mutate(year_caught_both=factor(year_caught_both))
+    mutate(year_caught_both=factor(year_caught_both))
+
+pairs_meta_id12
+
+pairs_meta_id12 <- pairs_meta_id12 %>%
+  unite("billabong_both",
+        as.character("Billabong_ID1"), as.character("Billabong_ID2"), 
+        sep = "_",
+        remove = FALSE, na.rm = FALSE) %>%
+  mutate(billabong_both=factor(billabong_both))
+
+pairs_meta_id12  

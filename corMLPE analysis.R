@@ -56,7 +56,12 @@ head(data2)
  
  levels(data2$billabong_both)
  
- data2$billabong_both <- recode_factor(data2$billabong_both, "Bend:Bank" = "River:Bend", "DalyRiv_Rd:Bend" = "River:Bend", "River:DalyRiv_Rd" = "River:River", "DalyRiv_Rd:Fish" = "River:Fish", "DalyRiv_Rd:Bank" = "River:River", "River:Bank" = "River:River", "Bank:Fish" = "River:Fish")
+data2$billabong_both <- recode_factor(data2$billabong_both, "Bend:Bank" = "RIV:DAL", "DalyRiv_Rd:Bend" = "RIV:DAL", "River:DalyRiv_Rd" = "RIV:RIV", "DalyRiv_Rd:Fish" = "RIV:FB", "DalyRiv_Rd:Bank" = "RIV:RIV", "River:Bank" = "RIV:RIV", "Bank:Fish" = "RIV:FB", "Bend:Fish" = "DAL:FB", "Bend:Bend" = "DAL:DAL", "River:Bend" = "RIV:DAL", "River:Fish" = "RIV:FB", "River:River" = "RIV:RIV", "Fish:Fish" = "FB:FB")
+ 
+ ## Lets get the naming right...
+ 
+ ## Bend is Dalagharra
+ ## 
  
 levels(data2$billabong_both)
 
@@ -189,20 +194,20 @@ anova(m7)
 confint(m7)
 plot(m7)
 
-plot(m4, resid(., type="normalized") ~ fitted(.), abline = c(0,0))
+plot(m7, resid(., type="normalized") ~ fitted(.), abline = c(0,0))
 
-ggplot(data2, aes(y=resid(m4, type="normalized"), 
-                  x= billabong_diff)) + 
+ggplot(data2, aes(y=resid(m7, type="normalized"), 
+                  x= billabong_both)) + 
   geom_boxplot()
 
-nagelkerke(m4) ## Note that the mdoel was refitted with ML not REML 
+nagelkerke(m7) ## Note that the mdoel was refitted with ML not REML 
 
 ## include but don't rely on
 
 # 95% CI's are back-transformed i.e. can ignore warning about SE's being on the log scale
 
 
-ggpredict(model = m4, terms = c("billabong_diff"), back_transform = TRUE) %>%  
+ggpredict(model = m7, terms = c("billabong_both"), back_transform = TRUE) %>%  
   plot(show_data = TRUE, jitter = 0.07)
 
 
@@ -230,22 +235,42 @@ dev.off()
 
 ## Plot 2
 
-plot2 <- ggplot(data = data2, aes(x = reorder(billabong_diff, -log(relatedness + 0.001)), y = log(relatedness + 0.001), fill = billabong_both))+
+plot2 <- ggplot(data = data2, aes(x = reorder(billabong_both, -log(relatedness + 0.001)), y = log(relatedness + 0.001), fill = billabong_both))+
+  scale_fill_brewer(palette = "RdYlGn")+
+  
   geom_boxplot()+
-  geom_signif(data=data2,comparisons=list( c("River:Fish", "Bend:Fish"),c("River:Fish", "Fish:Fish"), c("River:River","River:Fish")),
+  geom_jitter(alpha = 0.2) +
+  geom_signif(data=data2,comparisons=list( c("RIV:FB", "DAL:FB"),c("RIV:FB", "FB:FB"), c("RIV:RIV","RIV:FB")),
               map_signif_level = TRUE, 
               y_position = c(-1.3, -1.0, -0.70, -0.40), 
               annotations = c("*", "***", "***"), 
               textsize = 4.5) +
-  ggtitle("Relatedness Between Billabongs") +
+  ggtitle("Comparison of Relatedness Between Capture Location") +
   xlab("Pairwise Billabong Comparisons") +
   ylab("Log ( Relatedness + 0.001 )") +
   theme_bw()
 
-plot2 <- plot2 + theme(plot.title = element_text(hjust = 0.5)) +
+spatial_analysis <- plot2 + theme(plot.title = element_text(hjust = 0.5), 
+                       axis.text.x = element_text(angle = 0)) +
   guides(fill=guide_legend(title="Billabong Comparison"))
 
-print(plot2)
+print(spatial_analysis)
+
+tiff(fspatial_analysistiff(filename = "spatial_analysis.tiff",
+     width = 30, height = 20 ,units = "cm", 
+     compression = c("lzw"),
+     bg = "white", res = 2000)
+
+spatial_analysis
+
+dev.off()
+
+##
+
+library(ggeffects)
+
+library(ggplot2)
+
 
 #geom_hline(yintercept = mean(log(data2$relatedness + 0.001)), ) +
 
