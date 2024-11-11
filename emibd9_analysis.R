@@ -110,7 +110,10 @@ rel.hist <- rel.hist +
   scale_x_continuous(n.breaks = 12) +
   scale_y_continuous(n.breaks = 10) 
   
+
+dev.off()
 print(rel.hist)
+
 
 ################################################################################
 
@@ -191,8 +194,8 @@ sibs.all
 #write.csv(emibd.siblings, "emibd_sibs_daly.csv")
 
 
-sibs  <- read.csv("emibd_sibs_daly.csv")
-meta <- read.csv("Daly_meta.csv")
+sibs  <- read.csv("C:/Users/samue/Desktop/Honours/analysis/emibd_sibs_daly.csv")
+meta <- read.csv("C:/Users/samue/Desktop/Honours/analysis/Daly_meta.csv")
 
 meta <- meta[meta$id %in% c(sibs$id_1, sibs$id_2),]
 
@@ -268,6 +271,12 @@ kin_network1 <- ggraph::ggraph(network, layout = layout) +
   
 
 print(kin_network1)
+
+
+?gl.grm.network()
+
+glrm <- gl.grm.network(G = data.frame(daly.rel$raw), 
+                       x = gl)
 
 ## Fucking around
 

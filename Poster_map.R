@@ -50,8 +50,22 @@ crs(Daly)
 
 points <- read.csv("C:/Users/samue/Desktop/Honours/analysis/Daly_meta.csv")
 
-points$
+range <-st_read("C:/Users/samue/Desktop/Honours/Maps/pristis_range/data_0.shp")
 
+## Dist map
+
+
+PPrange <- ggplot(data = ozmap_country) +
+  geom_sf(fill = NA)+
+  geom_sf(data = range, fill = "#ADEBB3") +
+  coord_sf(xlim = c(110, 158), ylim = c(-5, -45), expand = FALSE) +
+  theme_bw()+
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank())
+
+print(PPrange)
+
+## 
 ## Now we can do a rough plot
 
 Daly_map <- ggplot(data = NT) +

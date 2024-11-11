@@ -6,6 +6,8 @@ install_github("green-striped-gecko/dartR.sexlinked@dev")
 #install.packages("hierfstat")
 #devtools::install_version("ggplot2", "3.4.4")
 
+install.packages("HardyWeinberg")
+
 ## Load all required packages
 library(dartR.sexlinked)
 library(dartRverse)
@@ -13,6 +15,7 @@ library(ggplot2)
 library(hierfstat)
 library(dplyr)
 library(devtools)
+library(HardyWeinberg)
 
 data <- "Sawfish_SNPs_genotyped.csv"
 meta <- "Sawfish_meta2.csv"
@@ -25,7 +28,10 @@ pop(data.gl) <- data.gl@other$ind.metrics$pop
 
 table(pop(data.gl))
 
-gl.smearplot(data.gl) ## A quick smearplot to check genotype data
+gl.smearplot(data.gl) 
+
+data.gl <- gl.keep.pop(data.gl, pop.list = "Daly")
+
 
 ## Save unfiltered data 
 
@@ -35,20 +41,17 @@ gl.smearplot(data.gl) ## A quick smearplot to check genotype data
 
 ## Get rid of sex linked loci 
 
-data.gl <- gl.filter.sexlinked(data.gl, system = "xy")
-
-data.gl <- data.gl$autosomal #keeps only our autosomal SNPs
-
 ## Get rid of unreliable loci
 
 gl.report.reproducibility(data.gl)
 
-data.gl <- dartR.base::gl.filter.reproducibility(data.gl, threshold = 0.99)
+data.gl <- dartR.base::gl.filter.reproducibility(data.gl, threshold = 0.98)
 
 ## Callrate 
+
 dartR.base::gl.report.callrate(data.gl)
 
-data.gl <- dartR.base::gl.filter.callrate(data.gl, method = "loc", threshold = 0.99)
+data.gl <- dartR.base::gl.filter.callrate(data.gl, method = "loc", threshold = 0.95)
 
 #Get rid of low and super high read depth loci
 
@@ -64,15 +67,23 @@ data.gl <- dartR.base::gl.filter.secondaries(data.gl)
 
 dartR.base::gl.report.callrate(data.gl, method = "ind")
 
-data.gl <- dartR.base::gl.filter.callrate(data.gl, method = "ind", threshold = 0.8)
+data.gl <- dartR.base::gl.filter.callrate(data.gl, method = "ind", threshold = 0.95)
 
 #Always run this after removing individuals – removes loci that are no longer variable
+
+data.gl <- dartR.base::gl.filter.hwe(data.gl)
+
+data.gl
+
 data.gl <- dartR.base::gl.filter.monomorphs(data.gl)
+
+
+data.gl 
 
 ## remove evidence of DNA contamination ## Important for kin finding 
 dartR.base::gl.report.heterozygosity(data.gl, method = "ind")
 
-data.gl <- dartR.base::gl.filter.heterozygosity(data.gl,t.lower = 0.2,  t.upper = 0.5)## Visualise our cleaned data 
+data.gl <- dartR.base::gl.filter.heterozygosity(data.gl,t.lower = 0.2,  t.upper = 0.5) ## Visualise our cleaned data 
 
 gl.smearplot(data.gl)
 
@@ -84,11 +95,8 @@ data.gl <- gl.filter.monomorphs(data.gl)
 
 ### SAVE DALY RIVER INDS ###
 
-Daly.gl <- gl.keep.pop(data.gl, pop.list = "Daly")
 
-Daly.gl <- gl.filter.monomorphs(Daly.gl)
-
-save(Daly.gl, file = "daly_geno_clean.Rdata")
+save(data.gl, file = "daly_geno_clean.Rdata")
 
 ## LD??
 
