@@ -42,28 +42,44 @@ plot_1 <- ggdotchart(tab_1, x = "Family", y = "n",
            palette = "Spectral",
            sorting = "descending",
            add = "segments", 
-           rotate = F, 
+           rotate = T, 
            group = "Order", 
            dot.size = 10, 
            label = round(tab_1$n,1),                        # Add mpg values as dot labels
            font.label = list(color = "black", size = 9, 
                              vjust = 0.5),           # Adjust label parameters
-           ggtheme = theme_pubr()                        # ggplot2 theme
+           ggtheme = theme_bw()                        # ggplot2 theme
 )+
   geom_hline(yintercept = 0, linetype = 2, color = "lightgray") 
 
-plot_1 + theme(legend.position = "bottom", 
-               plot.title = element_text(hjust = 0.5, 
-                                  size = 15))
+plot_1 <- plot_1 + theme(legend.position = "bottom", 
+               plot.title = element_text(hjust = 0.5, size = 18, margin = margin(10,0,10,0)), 
+               panel.grid.major = element_blank(), 
+               panel.grid.minor = element_blank(), 
+               axis.text = element_text(size = 12), 
+               axis.title = element_text(size = 14), 
+               axis.title.y = element_text(margin = margin(0,15,0,0)), 
+               plot.margin = unit(c(0,1,0,0.5), "cm"))
+
+print(plot_1)
+
+ggsave("plot_1.tiff",
+       plot = plot_1,
+       width = 30,
+       height = 25, 
+       units = "cm", 
+       path = "C:/Users/samue/Desktop/Honours/Chapter_1_lit_review/New_Plots", 
+       dpi = 600
+)
 
 
 ## try this instead
-plot_1 <- ggdotchart(tab_1, x = "Family", y = "n",
+plot_2 <- ggdotchart(tab_1, x = "Family", y = "n",
            color = "Order",                                # Color by groups
            palette = "Spectral", # Custom color palette
            sorting = "descending", 
            title = "Number of studies on each family",
-           ylab = "No. Studies",# Sort value in descending order
+           ylab = "No. of Studies",# Sort value in descending order
            rotate = TRUE,                                # Rotate vertically
            dot.size = 10,
            label = round(tab_1$n,1), 
@@ -73,9 +89,28 @@ plot_1 <- ggdotchart(tab_1, x = "Family", y = "n",
 )+
   theme_cleveland()  
 
-plot_1 + theme(legend.position = "bottom", 
-               plot.title = element_text(hjust = 0.5, 
-                                    size = 15))
+plot_2 <- plot_2 + theme(legend.position = "bottom", 
+               plot.title = element_text(hjust = 0.5, size = 18, margin = margin(10,0,10,0)), 
+               panel.grid.major = element_blank(), 
+               panel.grid.minor = element_blank(), 
+               axis.text = element_text(size = 12), 
+               axis.title = element_text(size = 14), 
+               axis.title.y = element_text(margin = margin(0,10,0,0)), 
+               plot.margin = unit(c(0,1,0,0.5), "cm"), 
+               panel.background = element_rect(colour = "black", linewidth = 0.5))
+
+
+
+print(plot_2)
+
+ggsave("plot_2.tiff",
+       plot = plot_2,
+       width = 30,
+       height = 25, 
+       units = "cm", 
+       path = "C:/Users/samue/Desktop/Honours/Chapter_1_lit_review/New_Plots", 
+       dpi = 600
+)
 
 
 # IDEA - add silhouette of body plans per order to contextualise? 
@@ -261,6 +296,13 @@ plot_6 <- plot_6 + theme(legend.position = "bottom",
 
 print(plot_6)
 
+ggsave(plot = plot_6, 
+       "plot_6.png", 
+       dpi = 500, 
+       width = 25, 
+       height = 25, 
+       unit = "cm", 
+       path = "C:/Users/samue/Desktop/Honours/Chapter_1_lit_review/New_Plots")
 
 ## To visualise the estimator use we need to pull in the tibble "estimator" from Lit Review ALL 
 ## Theres a nice bit of code that fixes all of my shit typos LOL so now we can just load it in
@@ -491,3 +533,40 @@ plot_9 <- ggdotchart(expanded_data,
 
 print(plot_9)
 
+## Another really good idea is comparing the marker power for each study where you're standardising the marker powers between SNPs and mSats, one good way to show this is as a boxplot potentially...
+
+data$logpwr <- log(data$Power_comp)
+
+plot_10 <- ggboxplot(data = data, 
+                     x = "Markers", 
+                     y = "logpwr", 
+                     title = "Comparison of Marker Statistical Power",
+                     xlab = "Marker Type", 
+                     ylab = "log(Marker Power)", 
+                     palette = c("grey","orange"),
+                     fill = "Markers") +
+  theme_bw() +
+  geom_jitter(data = data, 
+              aes(x = Markers, y = logpwr, size = 7), 
+              alpha = 0.5,
+              position = position_jitter(height = .2, width = .2)) +
+  theme(legend.position = "bottom", 
+        plot.title = element_text(hjust = 0.5, size = 18, margin = margin(10,0,10,0)), 
+        panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(), 
+        axis.text = element_text(size = 12), 
+        axis.title.y = element_text(margin = margin(0,10,0,10)),
+        axis.title = element_text(size = 15), 
+        plot.margin = unit(c(0,1,0,0), "cm")) +
+  guides(size = FALSE)
+
+print(plot_10)
+
+ggsave("plot_10.tiff",
+       plot = plot_10,
+       width = 25,
+       height = 25, 
+       units = "cm", 
+       path = "C:/Users/samue/Desktop/Honours/Chapter_1_lit_review/New_Plots", 
+       dpi = 600
+)
