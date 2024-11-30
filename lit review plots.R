@@ -10,6 +10,8 @@ library(tidyverse)
 library(dplyr)
 library(ggpubr)
 library(reshape2)
+require(gridExtra)
+require(cowplot)
 
 ## Load in the data - review2 is for general taxon + numbers 
 
@@ -27,9 +29,17 @@ data <- data %>%
 
 # organise the relevant data into a tibble 
 
+tab <- data %>%
+  group_by(Order, Family, Species)%>%
+  count(Species, sort = F)%>%
+  print(n = 50)
+
+write.csv(tab, "Species_Table.csv")
+
+
 tab_1 <- data %>%
   group_by(Order, Family)%>%
-  count(Family, sort = T)%>%
+  count(Family, sort = F)%>%
   print(n = 50)
 
 # plot it 
@@ -76,7 +86,7 @@ ggsave("plot_1.tiff",
 ## try this instead
 plot_2 <- ggdotchart(tab_1, x = "Family", y = "n",
            color = "Order",                                # Color by groups
-           palette = "Spectral", # Custom color palette
+           palette = "", # Custom color palette
            sorting = "descending", 
            title = "Number of studies on each family",
            ylab = "No. of Studies",# Sort value in descending order
@@ -90,16 +100,15 @@ plot_2 <- ggdotchart(tab_1, x = "Family", y = "n",
   theme_cleveland()  
 
 plot_2 <- plot_2 + theme(legend.position = "bottom", 
-               plot.title = element_text(hjust = 0.5, size = 18, margin = margin(10,0,10,0)), 
-               panel.grid.major = element_blank(), 
-               panel.grid.minor = element_blank(), 
-               axis.text = element_text(size = 12), 
-               axis.title = element_text(size = 14), 
-               axis.title.y = element_text(margin = margin(0,10,0,0)), 
-               plot.margin = unit(c(0,1,0,0.5), "cm"), 
-               panel.background = element_rect(colour = "black", linewidth = 0.5))
-
-
+                         plot.title = element_text(hjust = 0.5, size = 16, margin = margin(10,0,10,0)), 
+                         panel.grid.major = element_blank(), 
+                         panel.grid.minor = element_blank(), 
+                         axis.text = element_text(size = 12), 
+                         axis.title = element_text(size = 14),
+                         axis.title.y = element_text(margin = margin(0,10,0,0), angle = 90), 
+                         plot.margin = unit(c(0.5,1,1,0.5), "cm"), 
+                         panel.background = element_rect(colour = "black", linewidth = 0.5)) +
+  guides(colour = guide_legend(override.aes = list(size = 3), nrow = 3))
 
 print(plot_2)
 
@@ -133,31 +142,54 @@ tab_2 <- data2 %>%
 
 tab_2
 
+  tab_2$Focus <- factor(tab_2$Focus, levels = c("Reproduction", "Popgen", "Demography", "Social"))
+
+
 plot_3 <- ggdotchart(tab_2, x = "Family", y = "n",
                      color = "Order",
                      group = "Order",
                      facet.by = "Focus", 
                      palette = "Spectral", # Custom color palette
                      sorting = "descending", 
-                     title = "Number of studies on each family",
+                     title = "Number of studies on each family grouped by research focus",
                      ylab = "No. Studies",# Sort value in descending order
                      rotate = F,
                      add = "segments",
-                     dot.size = 10,
+                     dot.size = 8,
                      label = round(tab_2$n,1), 
-                     font.label = list(color = "black", size = 9, 
+                     font.label = list(color = "black", size = 10, 
                                        vjust = 0.5), # Color y text by groups
                      ggtheme = theme_bw()                        # ggplot2 theme
 ) +
   geom_hline(yintercept = 0, linetype = 2, color = "lightgray")
 
-plot_3 + theme(legend.position = "bottom", 
-               plot.title = element_text(hjust = 0.5, 
-                                         size = 15))
+plot_3 <- plot_3 + theme(legend.position = "bottom", 
+               plot.title = element_text(hjust = 0.5, size = 18, margin = margin(10,0,10,0)), 
+               panel.grid.major = element_blank(), 
+               panel.grid.minor = element_blank(), 
+               axis.text = element_text(size = 12), 
+               axis.title = element_text(size = 14), 
+               axis.title.y = element_text(margin = margin(0,10,0,0), angle = 90), 
+               axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1),
+               strip.text = element_text(size = 11),
+               plot.margin = unit(c(0,1,0,0.5), "cm"))
+
+print(plot_3)
+
+ggsave("plot_3.tiff",
+       plot = plot_3,
+       width = 30,
+       height = 25,
+       units = "cm", 
+       path = "C:/Users/samue/Desktop/Honours/Chapter_1_lit_review/New_Plots", 
+       dpi = 600
+)
 
 ## Now lets look at the markers used (i.e. the distribution between msats and SNPs)
 
 View(data2)
+
+
 
 tab_4 <- data2 %>%
   group_by(Markers, Focus) %>%
@@ -165,19 +197,41 @@ tab_4 <- data2 %>%
 
 tab_4 
 
+tab_4$Focus <- factor(tab_4$Focus, levels = c("Reproduction", "Popgen", "Demography", "Social"))
+
 plot_4 <- ggbarplot(tab_4, x = "Markers", y = "n",
                      fill = "Markers",
                      facet.by = "Focus", 
-                     palette = "Spectral", # Custom color palette
+                    title = "Marker use grouped by research focus",
+                    palette = c("grey","orange"), # Custom color palette
                      sorting = "descending", 
                      ylab = "No. Studies",# Sort value in descending order
                      rotate = F,
                      ggtheme = theme_bw()                        
 )
 
-plot_4 + theme(legend.position = "bottom", 
-               plot.title = element_text(hjust = 0.5, 
-                                         size = 15))
+plot_4 <- plot_4 + theme(legend.position = "bottom", 
+               plot.title = element_text(hjust = 0.5, size = 18, margin = margin(10,0,10,0)), 
+               panel.grid.major = element_blank(), 
+               panel.grid.minor = element_blank(), 
+               axis.text = element_text(size = 12), 
+               axis.title = element_text(size = 14), 
+               axis.title.y = element_text(margin = margin(0,10,0,0), angle = 90), 
+               axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1),
+               strip.text = element_text(size = 11),
+               plot.margin = unit(c(0,1,0,0.5), "cm"))
+
+
+plot_4
+
+ggsave("plot_4.tiff",
+       plot = plot_4,
+       width = 30,
+       height = 25,
+       units = "cm", 
+       path = "C:/Users/samue/Desktop/Honours/Chapter_1_lit_review/New_Plots", 
+       dpi = 600
+)
 
 ## Thingking of alternative ways, you could represent the % of SNP and mSats as stacked in one plot where each bar represents the different focus topics? 
 
@@ -192,7 +246,7 @@ plot_5 <- ggplot(tab_4, aes(x = Focus, y = n, fill = Markers)) +
 
 plot_5 + theme(legend.position = "bottom", 
                 plot.title = element_text(hjust = 0.5, 
-                                          size = 15))
+                                          size = 16))
 
 ## This is okay, but I feel that it can be better - lets try and add a facet grid by year ranges 
 
@@ -222,7 +276,7 @@ plot_4 <- ggbarplot(tab_4, x = "Markers", y = "n",
 plot_4 <- plot_4 +
   theme(legend.position = "bottom", 
                plot.title = element_text(hjust = 0.5, 
-                                         size = 15))
+                                         size = 16))
 
 print(plot_4)
 
@@ -258,8 +312,9 @@ plot_5 <- ggdotchart(tab_4, x = "Markers", y = "n",
 
 plot_5 + theme(legend.position = "bottom", 
                plot.title = element_text(hjust = 0.5, 
-                                         size = 15), 
-               panel.grid.major = element_blank(), panel.grid.minor = element_blank())
+                                         size = 16), 
+               panel.grid.major = element_blank(), 
+               panel.grid.minor = element_blank())
 
 ## Sociality
 
@@ -368,7 +423,7 @@ plot_7 <- ggplot(matrix_df, aes(Var1, Var2, fill = value)) +
        title = "Heatmap of Relatedness Estimator Use (Single, Two, and Three Combinations)") +
   theme_bw() +
   theme(axis.text.x = element_text(angle = 45, hjust = 1), 
-        plot.title = element_text(hjust = 0.5, size = 15, margin = margin(10,0,10,0)), 
+        plot.title = element_text(hjust = 0.5, size = 16, margin = margin(10,0,10,0)), 
         axis.text = element_text(size = 12))
 
 print(plot_7)
@@ -462,7 +517,7 @@ plot_8 <- ggdotchart(expanded_data,
 ) + 
   geom_hline(yintercept = 0, linetype = 2, color = "lightgray") +
   theme(legend.position = "bottom",
-        plot.title = element_text(hjust = 0.5, size = 18), 
+        plot.title = element_text(hjust = 0.5, size = 16), 
         panel.grid.major = element_blank(), 
         panel.grid.minor = element_blank(), 
         axis.text = element_text(size = 12), 
@@ -524,7 +579,7 @@ plot_9 <- ggdotchart(expanded_data,
 ) + 
   geom_hline(yintercept = 0, linetype = 2, color = "lightgray") +
   theme(legend.position = "bottom",
-        plot.title = element_text(hjust = 0.5, size = 18, margin = margin(10,0,10,0)), 
+        plot.title = element_text(hjust = 0.5, size = 16, margin = margin(10,0,10,0)), 
         panel.grid.major = element_blank(), 
         panel.grid.minor = element_blank(), 
         axis.text = element_text(size = 12), 
@@ -535,7 +590,9 @@ print(plot_9)
 
 ## Another really good idea is comparing the marker power for each study where you're standardising the marker powers between SNPs and mSats, one good way to show this is as a boxplot potentially...
 
-data$logpwr <- log(data$Power_comp)
+## Plot 10 
+
+data$logpwr <- log(data$Power_comp) # note that we log transform to make y axis more easy to interpret
 
 plot_10 <- ggboxplot(data = data, 
                      x = "Markers", 
@@ -551,7 +608,7 @@ plot_10 <- ggboxplot(data = data,
               alpha = 0.5,
               position = position_jitter(height = .2, width = .2)) +
   theme(legend.position = "bottom", 
-        plot.title = element_text(hjust = 0.5, size = 18, margin = margin(10,0,10,0)), 
+        plot.title = element_text(hjust = 0.5, size = 16, margin = margin(10,0,10,0)), 
         panel.grid.major = element_blank(), 
         panel.grid.minor = element_blank(), 
         axis.text = element_text(size = 12), 
@@ -570,3 +627,129 @@ ggsave("plot_10.tiff",
        path = "C:/Users/samue/Desktop/Honours/Chapter_1_lit_review/New_Plots", 
        dpi = 600
 )
+
+
+## A cleveland plot could also be great for the overview of estimator use
+
+
+## Maybe colour by categorical and continuous estimators? 
+
+plot_11 <- ggdotchart(expanded_data, 
+                      x = "Kinship.Method", 
+                      y = "Total_Frequency",
+                     color = "Kinship.Method",                                # Color by groups
+                     palette = "", # Custom color palette
+                     sorting = "descending", 
+                     title = "Relatedness Estimator Use",
+                     ylab = "Number of Studies",
+                     xlab = "Relatedness Estimator", # Sort value in descending order
+                     rotate = TRUE,                                # Rotate vertically
+                     dot.size = 10,
+                     label = round(expanded_data$Total_Frequency,1), 
+                     font.label = list(color = "black", size = 9, 
+                                       vjust = 0.5), # Color y text by groups
+                     ggtheme = theme_pubr()                        # ggplot2 theme
+)+
+  theme_cleveland()  
+
+plot_11 <- plot_11 + theme(legend.position = "bottom", 
+                         plot.title = element_text(hjust = 0.5, size = 16, margin = margin(10,0,10,0)), 
+                         panel.grid.major = element_blank(), 
+                         panel.grid.minor = element_blank(), 
+                         axis.text = element_text(size = 12), 
+                         axis.title = element_text(size = 14),
+                         axis.title.y = element_text(margin = margin(0,10,0,0), angle = 90), 
+                         plot.margin = unit(c(0.5,1,1,0.5), "cm"), 
+                         panel.background = element_rect(colour = "black", linewidth = 0.5)) +
+  guides(colour = FALSE)
+
+
+print(plot_11)
+
+ggsave("plot_11.tiff",
+       plot = plot_11,
+       width = 30,
+       height = 25, 
+       units = "cm", 
+       path = "C:/Users/samue/Desktop/Honours/Chapter_1_lit_review/New_Plots", 
+       dpi = 600
+)
+
+## Visualise the markers as a parplot facet wrapped by focus 
+
+
+## Plot the marker power side by side 
+
+plot_12 <- plot_grid(plot_4, plot_10, 
+                     ncol = 2)
+  
+plot_12
+
+ggsave("plot_12.tiff",
+       plot = plot_12,
+       width = 40,
+       height = 24, 
+       units = "cm", 
+       path = "C:/Users/samue/Desktop/Honours/Chapter_1_lit_review/New_Plots", 
+       dpi = 600
+)
+
+
+
+
+plot_13 <- plot_grid(plot_2, plot_11,
+                     ncol = 2)
+
+plot_13
+
+
+## Plot the Conservation status of studies 
+
+# Pull from data
+
+cons_data <- data %>%
+  select(IUCN.Status) %>%
+  count(IUCN.Status)
+
+cons_data
+
+cons_data$IUCN.Status <- factor(cons_data$IUCN.Status, levels = c("Data deficient", "Least Concern", "Near Threatened", "Vulnerable", "Endangered", "Critically Endangered"))
+
+
+plot_14 <- ggdotchart(cons_data, x = "IUCN.Status", y = "n",
+                      color = "IUCN.Status",
+                      palette = c('grey', 'green', 'lightgreen', 'yellow',  'orange', "red"),
+                      title = "Number of studies on elasmobranchs by IUCN Status",
+                      ylab = "No. of Studies",# Sort value in descending order
+                      rotate = F,  
+                      sorting = "none",
+                      add = "segments",
+                      dot.size = 8,
+                      label = round(cons_data$n,1), 
+                      font.label = list(color = "black", size = 9, 
+                                        vjust = 0.5), # Color y text by groups
+                      ggtheme = theme_pubr()                        # ggplot2 theme
+)
+
+plot_14 <- plot_14 + theme(legend.position = "bottom", 
+                         plot.title = element_text(hjust = 0.5, size = 16, margin = margin(10,0,10,0)), 
+                         panel.grid.major = element_blank(), 
+                         panel.grid.minor = element_blank(), 
+                         axis.text = element_text(size = 12), 
+                         axis.title = element_text(size = 14),
+                         axis.title.y = element_text(margin = margin(0,10,0,0), angle = 90), 
+                         plot.margin = unit(c(0.5,1,1,0.5), "cm"), 
+                         panel.background = element_rect(colour = "black", linewidth = 0.5)) +
+  guides(colour = guide_legend(override.aes = list(size = 3), title = "IUCN"))
+
+print(plot_14)
+
+ggsave("plot_14.tiff",
+       plot = plot_14,
+       width = 30,
+       height = 25, 
+       units = "cm", 
+       path = "C:/Users/samue/Desktop/Honours/Chapter_1_lit_review/New_Plots", 
+       dpi = 600
+)
+
