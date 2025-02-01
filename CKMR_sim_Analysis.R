@@ -162,6 +162,7 @@ ckmr <- create_ckmr(
   ge_mod_true_pars_list = list(epsilon = 0.005)
 )
 
+ckmr
 ## -=-------------------------------------------------------------------------- 
 
 ### Select the dyads the want to examine further 

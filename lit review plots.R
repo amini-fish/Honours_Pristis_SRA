@@ -19,9 +19,11 @@ require(gtExtras)
 
 ## Load in the data - review2 is for general taxon + numbers 
 
-setwd("C:/Users/samue/Desktop")
+
+setwd("C:/Users/samue/Desktop/Honours/Chapter_1_lit_review/Metadata")
 
 data <- read.csv("relatedness_literature_review_working2.csv", stringsAsFactors = T)
+
 
 data <- data %>% 
   filter(Index == "Keep")%>%
@@ -94,7 +96,7 @@ ggsave("plot_1.tiff",
 ## try this instead
 plot_2 <- ggdotchart(tab_1, x = "Family", y = "n",
            color = "Order", # Custom color palette
-           sorting = "descending", 
+           sorting = "Descending", 
            palette = "Spectral",
            ylab = "Number of studies",# Sort value in descending order
            rotate = TRUE,                                # Rotate vertically
@@ -123,7 +125,7 @@ ggsave("plot_2.tiff",
        width = 28,
        height = 25, 
        units = "cm", 
-       path = "C:/Users/samue/Desktop/Honours/Chapter_1_lit_review/New_Plots", 
+       path = "C:/Users/samue/Desktop/Honours/Chapter_1_lit_review", 
        dpi = 1000
 )
 
@@ -576,6 +578,9 @@ expanded_data
 expanded_data$Focus <- recode_factor(expanded_data$Focus, "Popgen" = "Population Genetics", "Social" = "Sociality")
 
 expanded_data$Focus <- factor(expanded_data$Focus, levels = c("Reproduction", "Population Genetics", "Demography", "Sociality"))
+
+print(expanded_data, n = 50)
+
 ## Plot this data 
 
 plot_10 <- ggdotchart(expanded_data, 

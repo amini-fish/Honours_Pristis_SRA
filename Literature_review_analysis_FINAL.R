@@ -6,6 +6,10 @@ install.packages("gtExtras")
 if (!requireNamespace("ggplot2")) install.packages("ggplot2")
 if (!requireNamespace("reshape2")) install.packages("reshape2")
 
+#-------------------------------------------------------------------------------
+
+## START HERE 
+
 library(ggplot2)
 library(tidyverse)
 library(dplyr)
@@ -17,11 +21,12 @@ require(gt)
 require(gtExtras)
 
 #-------------------------------------------------------------------------------
+
 ## Set working directory
 
 # My desktop - or wherever you have the data stored
 
-setwd("C:/Users/samue/Desktop")
+setwd("C:/Users/samue/Desktop/Honours/Chapter_1_lit_review/Metadata")
 
 #-------------------------------------------------------------------------------
 
@@ -85,6 +90,7 @@ max(data$Year) #Year max
 
 # Number of studies by order
 
+
 data %>%
   group_by(Order) %>%
   count(Order, sort = T)
@@ -93,15 +99,15 @@ data %>%
 
 data %>%
   group_by(Order, Family)%>%
-  count(Family, sort = T)%>%
+  count(Family, sort = F)%>%
   print(n = 50)
 
 # To species level 
 
-data %>%
+  data %>%
   group_by(Order, Family, Species)%>%
-  count(Family, sort = T)%>%
-  print(n = 55)
+  count(Family, sort = F)%>%
+  print(n = 70)
 
 ## Extinction risk - all
 
@@ -114,9 +120,11 @@ IUCN <- IUCN %>% mutate(SUM=sum(n),
 
 IUCN$Percent <- round(IUCN$Percent, 2); IUCN
 
-Threatened <- 18+14+22 ; Threatened # total threatened 
+Threatend <- 23+19+29 ; Threatened # total threatened 
 
-82 - Threatened #total non-threatened (exlcuding DD)
+(Threatend/sum(IUCN$n))*100
+
+106 - Threatened #total non-threatened (exlcuding DD)
 
 # Marker use - all
 
@@ -141,8 +149,9 @@ snp_all <- data %>%
   filter(Markers == "SNP") %>% 
   select(No..SNPs)
 
-summary(snp_all$No..SNPs)
-sd(snp_all$No..SNPs)
+summary(snp_all$No..SNPs, na.rm = T)
+sd(snp_all$No..SNPs, na.rm = T)
+base::sd(snp_all$No..SNPs)
 
 # Estimators :) 
 
@@ -170,18 +179,23 @@ estimator$Kinship.Method <- as.character(estimator$Kinship.Method)
 # Here we're essentially telling R to split anything with a + and place it into the column named Kinship.Method and then selecting only estiamtor names and their counts
 
 estimator <- estimator %>%
-  mutate(Kinship.Method = strsplit(Kinship.Method, " \\+ ")) %>% # Split the combinations
+  mutate(Kinship.Method = strsplit(Kinship.Method, " \\+ ")) %>% 
   unnest(Kinship.Method) %>%
-  select(Kinship.Method, n)
+  group_by(Kinship.Method) %>%
+  summarise(n = sum(n), .groups = "drop")%>%
+  arrange(desc(n))
 
+print(estimator, n = 70)
 # But there is a catch 
 # There will be some data cleaning to do now that we have split things...it's just a part of it but can be prone to errors.
 
-estimator$Kinship.Method <- recode_factor(estimator$Kinship.Method, "CERVUS " = "CERVUS", "Allele counts  " = "Allele counts", "CKMRsim " = "CKMRsim", "KinGroup  " = "KinGroup", "Sequioa " = "Sequoia")
+estimator$Kinship.Method <- recode_factor(estimator$Kinship.Method, "CERVUS " = "CERVUS", "Allele counts  " = "Allele counts", "CKMRsim " = "CKMRsim", "KinGroup  " = "KinGroup", "Sequioa " = "Sequoia", "Cervus" = "CERVUS")
 
 # Now, after some more visual checks we're confident we have removed any typos we can transform and count our estimator use properly
 
 estimator$Kinship.Method <- as.character(estimator$Kinship.Method)
+
+print(estimator, n = 50)
 
 #Group it by the name, summarise it by calculating the sum of N for every row that each estimator occurs in (rather than counting how many rows it occurs in - easy mistake to make). Arrange it in descending order. 
 
@@ -196,9 +210,75 @@ print(estimator, n = 100)
 
 # The above should give us a broken down count of how many times each estimator was used, whether in isolation or in combination with another, this means the number wont add to 83 (because more than one estimator was used  57% of the time). 
 
+
+## Marker power data 
+
+power_comp <- data %>%
+  select(Power_comp, Markers)
+
+summary(power_comp$Power_comp, na.rm = T)
+sd(power_comp$Power_comp, na.rm = T)
+
+# this works, but the range is so great that it jumps up a couple of orders of magnitude...I could log transfrom it? 
+
+# it is also a good idea to do some kind of statistical test (t-test) 
+
+hist(power_comp$Power_comp) # extremely skewed...need to transform 
+
+power_comp <- power_comp %>%
+  mutate(Power_comp, log_pwr = log(Power_comp))
+
+hist(power_comp$log_pwr)
+
+power_comp <- power_comp %>%
+  mutate(power_comp, log10_pwr = log10(Power_comp))
+
+
+hist(power_comp$log10_pwr)
+
+## THis will need some serious thought as to how to transform, and whether to just do a non-parametric test instead becasue I don't think it'll ever fit a normal dist or satisfy assumption. 
+## mann-whitney U test 
+
+res <- wilcox.test(log_pwr ~ Markers, 
+                   data = power_comp,
+                   exact = F)
+
+
+res
+
 #-------------------------------------------------------------------------------
 
 ## Section 2 - Categories (will get to this later as less urgent)
+
+# Overall number of studies by research category
+
+data_2 %>%
+  group_by(Focus) %>%
+  count(Focus, sort = T) %>%
+  mutate(Focus, SUM = sum(n), 
+         Percent = n/SUM*100)
+
+# Taxonomy by focus - species
+
+# Order 
+data_2 %>%
+  group_by(Focus, Order) %>%
+  count(Order) %>%
+  print(n = 100)
+
+# Family 
+
+data_2 %>%
+  group_by(Focus, Family) %>%
+  count(Family) %>%
+  print( n = 100)
+
+# Species
+
+data_2 %>%
+  group_by(Focus,Species) %>%
+  count(Species) %>%
+  print(n = 100)
 
 # Rinse and repeat
 
@@ -216,7 +296,7 @@ expanded_est <- est_foc %>%
   unnest(Kinship.Method) %>%
   select(Kinship.Method, n, Focus)
 
-expanded_est$Kinship.Method <- recode_factor(expanded_est$Kinship.Method, "CERVUS " = "CERVUS", "Allele counts  " = "Allele counts", "CKMRsim " = "CKMRsim", "KinGroup  " = "KinGroup", "Sequioa " = "Sequoia")
+expanded_est$Kinship.Method <- recode_factor(expanded_est$Kinship.Method, "CERVUS " = "CERVUS", "Allele counts  " = "Allele counts", "CKMRsim " = "CKMRsim", "KinGroup  " = "KinGroup", "Sequioa " = "Sequoia", "Cervus" = "CERVUS")
 
 expanded_est$Kinship.Method <- as.character(expanded_est$Kinship.Method)
 expanded_est$Focus <- as.character(expanded_est$Focus)
@@ -241,11 +321,18 @@ print(expanded_est, n = 50)
 # first thing is first - we need to get all the studies focused on repro 
 
 reproduction <- data_2 %>%
-  filter(Focus == "Reproduction")
+  filter(Focus == "Reproduction") %>%
+  droplevels()
 
 reproduction
 
 # Rinse and repeat 
+
+nlevels(reproduction$Order) # Number of orders
+
+nlevels(reproduction$Family) # Number of families
+
+nlevels(reproduction$Species)
 
 # Taxonomy
 
@@ -257,7 +344,7 @@ reproduction %>%
 
 reproduction %>%
   group_by(Order, Family)%>%
-  count(Family, sort = T)%>%
+  count(Family, sort = F)%>%
   print(n = 50)
 
 # To species level 
@@ -278,7 +365,9 @@ IUCN_repro <- IUCN_repro %>% mutate(SUM=sum(n),
 
 IUCN_repro$Percent <- round(IUCN_repro$Percent, 2); IUCN_repro
 
-10 + 10 + 6
+Rep_Th <- 6 + 10 + 11
+
+Rep_Th/50
 
 20.41 + 20.41 + 12.24 #threatened %
 
@@ -286,30 +375,91 @@ IUCN_repro$Percent <- round(IUCN_repro$Percent, 2); IUCN_repro
 
 30.61 + 14.29 + 2.04
 
-# Alrighty - estimators...
+## Markers
+
+  # Marker types 
+
+reproduction %>%
+  group_by(No..Marker.Types) %>%
+  count(No..Marker.Types)
+
+reproduction %>%
+  group_by(Markers) %>%
+  count(Markers)
+  
+  # Summary Stats
+
+summary(reproduction$No..mSats, na.rm = T)
+sd(reproduction$No..mSats, na.rm = T)
+
+summary(reproduction$No..SNPs, na.rm = T)
+sd(reproduction$No..SNPs, na.rm = T)
+
+  # Marker Power
+
+
+## Sample sizes
+
+str(reproduction)
+
+summary(as.numeric(as.character(reproduction$n_samples, na.rm = T)))
+
+sd(as.numeric(as.character(reproduction$n_samples, na.rm = T)))
+
+sd(reproduction$n_samples)
+
+mode <- function(x, na.rm = FALSE) {
+  
+  if(na.rm){ #if na.rm is TRUE, remove NA values from input x
+    x = x[!is.na(x)]
+  }
+  
+  val <- unique(x)
+  return(val[which.max(tabulate(match(x, val)))])
+}
+
+  
+mode(as.character(reproduction$n_samples, na.rm = T))
+
+mode(reproduction$N_litters, na.rm = T)
+
+
+
+# Estimators 
 
 # we just need to use our tibble named expanded_est here...filter it by the column "focus" and we have our info
 
+nest_rep <- data.frame(reproduction %>%
+             group_by(No..analyses) %>%
+             count(No..analyses))
+
+nest_rep %>% mutate(SUM=sum(n),Percent=n/SUM*100)
+
+
 expanded_est %>%
   filter(Focus == "Reproduction") %>%
-  arrange(desc(Total_Frequency))
+  arrange(desc(Total_Frequency)) #BOOM!!
 
-#BOOM!!
 
-# Sample sizes
-
-# 
 
 #-------------------------------------------------------------------------------
 
 ## Section 4 - Population Genetics 
 
 popgen <- data_2 %>%
-  filter(Focus == "Popgen")
+  filter(Focus == "Popgen")%>%
+  droplevels()
 
 popgen
 
 # Taxonomy 
+
+
+nlevels(popgen$Order) # Number of orders
+
+nlevels(popgen$Family) # Number of families
+
+nlevels(popgen$Species)
 
   ## Order
 
@@ -331,6 +481,13 @@ popgen %>%
   count(Family, sort = F)%>%
   print(n = 55)
 
+# Sub-category breakdown 
+
+popgen %>%
+  group_by(Popgen_focus) %>%
+  count(Popgen_focus)
+
+
 # Extinction risk 
 
 IUCN_pg <- data.frame(popgen %>% 
@@ -344,15 +501,54 @@ IUCN_pg$Percent <- round(IUCN_pg$Percent, 2); IUCN_pg
 
   ## Quick calculations 
 
-14 +10+3 # Threatened studies
-43.75 + 31.25 + 9.38 #threatened % 
-9.38 + 6.25 # rest % 
+18 + 8 + 16 # Threatened studies
+
+42/54 
 
 # Markers 
+
+popgen %>%
+  group_by(No..Marker.Types) %>%
+  count(No..Marker.Types)
+
+popgen %>%
+  group_by(Markers) %>%
+  count(Markers)
+
+# Summary Stats
+
+summary(popgen$No..mSats, na.rm = T)
+sd(popgen$No..mSats, na.rm = T)
+
+summary(popgen$No..SNPs, na.rm = T)
+sd(popgen$No..SNPs, na.rm = T)
+
+## Sample sizes
+
+str(reproduction)
+
+summary(as.numeric(as.character(popgen$n_samples, na.rm = T)))
+
+sd(as.numeric(as.character(popgen$n_samples, na.rm = T)))
+
+sd(reproduction$n_samples)
 
 # Sample sizes 
 
 # Estimators 
+
+## Number of estimators 
+nest_pg <- data.frame(popgen %>%
+                         group_by(No..analyses) %>%
+                         count(No..analyses))
+
+nest_pg %>% mutate(SUM=sum(n),Percent=n/SUM*100)
+
+  ## Detailed breakdown
+
+expanded_est %>%
+  filter(Focus == "Population Genetics") %>%
+  arrange(desc(Total_Frequency))
 
 #-------------------------------------------------------------------------------
 
@@ -361,9 +557,34 @@ IUCN_pg$Percent <- round(IUCN_pg$Percent, 2); IUCN_pg
 # Subset 
 
 demo <- data_2 %>%
-  filter(Focus == "Demography")
+  filter(Focus == "Demography")%>%
+  droplevels()
 
-# Taxonomy 
+nlevels(demo$Order) # Number of orders
+
+nlevels(demo$Family) # Number of families
+
+nlevels(demo$Species)
+
+## Order
+
+demo%>%
+  group_by(Order) %>%
+  count(Order, sort = T)
+
+## Family
+
+demo %>%
+  group_by(Order, Family)%>%
+  count(Family, sort = T)%>%
+  print(n = 50)
+
+## Species 
+
+demo %>%
+  group_by(Order, Family, Species)%>%
+  count(Family, sort = F)%>%
+  print(n = 55)
 
 # IUCN 
 
@@ -376,13 +597,255 @@ IUCN_demo <- IUCN_demo %>% mutate(SUM=sum(n),
 
 IUCN_demo$Percent <- round(IUCN_demo$Percent, 2); IUCN_demo
 
+57.14 + 28.57 
+
 # Markers
+
+  ## SNP number 
+
+summary(demo$No..SNPs, na.rm = T)
+sd(demo$No..SNPs, na.rm = T)
 
 # Samples Sizes 
 
+summary(as.numeric(demo$n_samples), na.rm = T)
+
 # Estimators
+
+  ## Detailed breakdown
+
+expanded_est %>%
+  filter(Focus == "Demography") %>%
+  arrange(desc(Total_Frequency))
 
 #-------------------------------------------------------------------------------
 
 ## Section 6 - Sociality 
 
+# Subset 
+
+soc <- data_2 %>%
+  filter(Focus == "Social")
+
+# Taxonomy 
+
+## Order
+
+soc %>%
+  group_by(Order) %>%
+  count(Order, sort = T)
+
+## Family
+
+soc %>%
+  group_by(Order, Family)%>%
+  count(Family, sort = T)%>%
+  print(n = 50)
+
+## Species 
+
+soc %>%
+  group_by(Order, Family, Species)%>%
+  count(Family, sort = F)%>%
+  print(n = 55)
+
+# Sub-category breakdown 
+
+
+# Extinction Risk
+
+IUCN_soc <- data.frame(soc %>% 
+                          group_by(IUCN.Status) %>%
+                          count(IUCN.Status, sort = T))
+
+IUCN_soc <- IUCN_soc %>% mutate(SUM=sum(n),
+                                  Percent=n/SUM*100) 
+
+IUCN_soc$Percent <- round(IUCN_soc$Percent, 2); IUCN_soc
+
+42.86 + 28.57 + 14.29
+
+
+# Markers 
+
+soc %>%
+  group_by(No..Marker.Types) %>%
+  count(No..Marker.Types)
+
+soc %>%
+  group_by(Markers) %>%
+  count(Markers)
+
+summary(soc$No..mSats, na.rm = T)
+sd(soc$No..mSats, na.rm = T)
+
+summary(soc$No..SNPs, na.rm = T)
+sd(soc$No..SNPs, na.rm = T)
+
+soc %>%
+  select(No..SNPs)
+
+# Samples Sizes 
+
+summary(as.numeric(as.character(soc$n_samples)))
+
+sd(as.numeric(as.character(soc$n_samples)))
+
+# Sample Sizes 
+
+# Estimators
+
+N_est_soc <- data.frame(soc %>%
+                         group_by(No..analyses) %>%
+                         count(No..analyses))
+
+N_est_soc %>% mutate(SUM=sum(n),Percent=n/SUM*100)
+
+
+expanded_est %>%
+  filter(Focus == "Sociality") %>%
+  arrange(desc(Total_Frequency)) #BOOM!!
+
+#-------------------------------------------------------------------------------
+
+## Section 7 - Miscellaneous 
+
+# Species table 1 
+
+Species_table <- data_2 %>%
+  group_by(Order, Family, Species, Focus) %>%
+  count(Species) %>%
+  pivot_wider(names_from = Focus,values_from=n) %>%
+  mutate(across(everything(), as.character)) %>%
+  mutate_at(c("Reproduction", "Popgen", "Demography", "Social"), ~replace_na(.,""))
+
+Species_table
+
+write.csv(Species_table, file = "species_table.csv", row.names = F)
+
+## Suplementary Figures
+
+## Supp Fig 1 - IUCN status of all & each category...
+
+n_est <- data_2 %>%
+  select(No..analyses, Focus)%>%
+  count(No..analyses, Focus)
+
+n_est
+
+n_est$Focus <- recode_factor(n_est$Focus, "Popgen" = "Population Genetics", "Social" = "Sociality")
+
+n_est$Focus <- factor(n_est$Focus, levels = c("Reproduction", "Population Genetics", "Demography", "Sociality"))
+
+
+supp_1 <- ggbarplot(n_est,
+                   x = "No..analyses", 
+                   y = "n", 
+                   fill = "Focus", 
+                   palette = "Spectral", 
+                   label = F,
+                   ylab = "No. Studies",
+                   xlab = "No. Analyses",
+                   position = position_dodge(0.9)) +
+  theme_bw()
+
+supp_1 <- supp_1 + theme(legend.position = "bottom", 
+                         panel.grid.major = element_blank(), 
+                         panel.grid.minor = element_blank(), 
+                         axis.text = element_text(size = 12), 
+                         axis.title = element_text(size = 12), 
+                         axis.title.y = element_text(margin = margin(0,15,0,0)), 
+                         plot.margin = unit(c(1,1,1,1), "cm")) 
+
+print(supp_1)
+
+
+ggsave("supp_1.tiff",
+       plot = supp_1,
+       width = 28,
+       height = 20, 
+       units = "cm", 
+       path = "C:/Users/samue/Desktop/Honours/Chapter_1_lit_review/New_Plots", 
+       dpi = 1000
+)
+
+
+## Supp Fig 2 - Sample Sizes
+
+sample_size <- data_2 %>%
+  select(n_samples, Focus)
+
+sample_size$Focus <- recode_factor(sample_size$Focus, "Popgen" = "Population Genetics", "Social" = "Sociality")
+
+sample_size$Focus <- factor(sample_size$Focus, levels = c("Reproduction", "Population Genetics", "Demography", "Sociality"))
+
+sample_size$log_n <- log(sample_size$n_samples)
+
+supp2 <- ggboxplot(sample_size,
+          x = "Focus", 
+          y = "n_samples", 
+          fill = "Focus", 
+          ylab = "No. Samples",
+          palette = "Spectral") +
+  theme_bw()
+
+supp2 <- supp2 + 
+  theme(legend.position = "bottom", 
+        panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(), 
+        axis.text = element_text(size = 12), 
+        axis.title = element_text(size = 12), 
+        axis.title.y = element_text(margin = margin(0,15,0,0)), 
+        plot.margin = unit(c(1,1,1,1), "cm")) +
+  guides(size = FALSE, fill = FALSE)
+
+print(supp2)
+
+ggsave("supp_2.tiff",
+       plot = supp2,
+       width = 28,
+       height = 20, 
+       units = "cm", 
+       path = "C:/Users/samue/Desktop/Honours/Chapter_1_lit_review/New_Plots", 
+       dpi = 1000
+)
+
+# Log
+
+supp_2.2 <- ggboxplot(sample_size,
+                   x = "Focus", 
+                   y = "log_n", 
+                   fill = "Focus", 
+                   ylab = "log(No. Samples)",
+                   palette = "Spectral") +
+  theme_bw()
+
+print(supp_2.2)
+
+supp_2.2 <- supp_2.2 + 
+  theme(legend.position = "bottom", 
+        panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(), 
+        axis.text = element_text(size = 12), 
+        axis.title = element_text(size = 12), 
+        axis.title.y = element_text(margin = margin(0,15,0,0)), 
+        plot.margin = unit(c(1,1,1,1), "cm")) +
+  guides(size = FALSE, fill = FALSE)
+
+print(supp_2.2)
+
+ggsave("supp_2.2.tiff",
+       plot = supp_2.2,
+       width = 28,
+       height = 20, 
+       units = "cm", 
+       path = "C:/Users/samue/Desktop/Honours/Chapter_1_lit_review/New_Plots", 
+       dpi = 1000
+)
+
+
+## Supp Fig 3 - 
+
+## Supp Fig 4 - 
+
+## Supp Fig 5 - 

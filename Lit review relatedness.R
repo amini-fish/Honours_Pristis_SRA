@@ -6,7 +6,7 @@ library(ggplot2)
 library(tidyverse)
 library(dplyr)
 
-data <- read.csv("relatedness_literature_review_working.csv", stringsAsFactors = T)
+data <- read.csv("relatedness_literature_review_working2.csv", stringsAsFactors = T)
 
 colnames(data)
 View(data)
