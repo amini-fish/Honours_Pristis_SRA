@@ -24,10 +24,14 @@ setwd("C:/Users/samue/Desktop/Honours/Chapter_1_lit_review/Metadata")
 
 data <- read.csv("relatedness_literature_review_working2.csv", stringsAsFactors = T)
 
-
 data <- data %>% 
   filter(Index == "Keep")%>%
   droplevels
+
+# Data_2 will be used for analysis when we need to group things/count by research category. This means we have duplicated the studies where there is > 1 category 
+
+data_2 <- read.csv("relatedness_literature_review_working3.csv", stringsAsFactors = T)
+
 
 ## Plot 1 - summarise the number of studies of each order, and family of elasmobranch 
 
@@ -167,7 +171,7 @@ plot_3 <- ggdotchart(tab_2, x = "Family", y = "n",
                      label = round(tab_2$n,1), 
                      font.label = list(color = "black", size = 10, 
                                        vjust = 0.5), # Color y text by groups
-                     ggtheme = theme_bw()                        # ggplot2 theme
+                     ggtheme = theme_bw()                   
 ) + 
   theme_cleveland()
 
@@ -312,25 +316,31 @@ plot_5 + theme(
 
 # so we need to add year brackets of ~ 5 years? 
 
-data2 <- data2 %>%
+data_2 <- data_2 %>%
   mutate(new_bin = cut(Year, breaks = seq(2000, 2025, by = 5),  # Adjust to your bin size
                        labels = c("2001-2005", "2006-2010", "2011-2015", "2016-2020", "2021-2025")))
 
-
-tab_4 <- data2 %>%
+tab_4 <- data_2 %>%
   group_by(Markers, Focus, new_bin) %>%
   count(Markers, sort = T)
 
 tab_4 
 
-tab_4$Focus <- recode_factor(tab_4$Focus, "Popgen" = "Population Genetics", "Social" = "Sociality")
+tab_4$Focus <- recode_factor(tab_4$Focus, "Popgen" = "Population Genetics", "Social" = "Social Behaviour", "Reproduction" = "Reproductive Behaviour")
 
-tab_4$Focus <- factor(tab_4$Focus, levels = c("Reproduction", "Population Genetics", "Demography", "Sociality"))
+tab_4$Focus <- factor(tab_4$Focus, levels = c("Reproductive Behaviour", "Population Genetics", "Demography", "Social Behaviour"))
+
+tab_4$Markers <- factor(tab_4$Markers, levels = c("RFLP", "AFLP", "mSat", "SNP"))
+
+## Temporal patterns ## 
+
+palette_sa <- c("#ffb000", "#fe6100", "#dc267f", "#785ef0", "#648fff")
 
 plot_6 <- ggbarplot(tab_4, x = "Markers", y = "n",
                     fill = "Focus",
+                    position = position_dodge(preserve = "single"),
                     facet.by = "new_bin", 
-                    palette = "YlGn",
+                    palette = palette_sa,
                     ylab = "Number of studies", 
                     rotate = F,
                     dot.size = 10,
@@ -339,29 +349,30 @@ plot_6 <- ggbarplot(tab_4, x = "Markers", y = "n",
 plot_6 <- plot_6 + theme(legend.position = "bottom", 
                         panel.grid.major = element_blank(), 
                         panel.grid.minor = element_blank(), 
-                        axis.text = element_text(size = 12), 
-                        axis.title = element_text(size = 12), 
+                        axis.text = element_text(size = 11), 
+                        axis.title = element_text(size = 11), 
+                        axis.text.x = element_text(angle = 0),
                         axis.title.y = element_text(margin = margin(0,15,0,0)), 
                         plot.margin = unit(c(1,1,1,1), "cm"), 
-                        strip.text = element_text(size = 12)) +
+                        strip.text = element_text(size = 11)) +
   guides(colour = guide_legend(override.aes = list(size = 3), nrow = 3))
 
 print(plot_6)
 
-ggsave("plot_6.tiff",
+ggsave("temporal_trend_grouped.png",
        plot = plot_6,
        width = 28,
        height = 25,
        units = "cm", 
        path = "C:/Users/samue/Desktop/Honours/Chapter_1_lit_review/New_Plots", 
-       dpi = 1000
+       dpi = 2000
 )
 
 ## I like this, but there could be alterantive ways to present this that look even better? 
 
 # lets try a  dotchart
 
-data2 <- data2 %>%
+data2 <- data_2 %>%
   mutate(new_bin = cut(Year, breaks = seq(2000, 2025, by = 5),  # Adjust to your bin size
                        labels = c("2001-2005", "2006-2010", "2011-2015", "2016-2020", "2021-2025")))
 
@@ -371,10 +382,16 @@ tab_4 <- data2 %>%
 
 tab_4
 
+tab_4$Focus <- recode_factor(tab_4$Focus, "Popgen" = "Population Genetics", "Social" = "Social Behaviour", "Reproduction" = "Reproductive Behaviour")
+
+tab_4$Focus <- factor(tab_4$Focus, levels = c("Reproductive Behaviour", "Population Genetics", "Demography", "Social Behaviour"))
+
+tab_4$Markers <- factor(tab_4$Markers, levels = c("RFLP", "AFLP", "mSat", "SNP"))
+
 plot_7 <- ggbarplot(tab_4, x = "Markers", y = "n",
                      fill = "Markers",
                      facet.by = "new_bin", 
-                     palette = c("orange", "grey"),
+                     palette = "Paired",
                      ylab = "Number of studies",
                      rotate = F,
                      ggtheme = theme_bw())
@@ -382,11 +399,11 @@ plot_7 <- ggbarplot(tab_4, x = "Markers", y = "n",
 plot_7 <- plot_7 + theme(legend.position = "bottom", 
                           panel.grid.major = element_blank(), 
                           panel.grid.minor = element_blank(), 
-                          axis.text = element_text(size = 12), 
-                          axis.title = element_text(size = 12), 
+                          axis.text = element_text(size = 11), 
+                          axis.title = element_text(size = 11), 
                           axis.title.y = element_text(margin = margin(0,15,0,0)), 
                           plot.margin = unit(c(1,1,1,1), "cm"), 
-                          strip.text = element_text(size = 12)) +
+                          strip.text = element_text(size = 11)) +
   guides(colour = guide_legend(override.aes = list(size = 3), nrow = 3))
 
 print(plot_7)
@@ -398,7 +415,7 @@ ggsave("plot_7.tiff",
        height = 25,
        units = "cm", 
        path = "C:/Users/samue/Desktop/Honours/Chapter_1_lit_review/New_Plots", 
-       dpi = 1000
+       dpi = 1500
 )
 
 ## Sociality
@@ -1314,5 +1331,139 @@ ggsave("supps_snps.tiff",
        units = "cm", 
        path = "C:/Users/samue/Desktop/Honours/Chapter_1_lit_review/New_Plots", 
        dpi = 1000
+)
+
+##--------------------------------------------------------------------
+
+
+data_2 <- read.csv("relatedness_literature_review_working3.csv", stringsAsFactors = T)
+
+
+## Barplot where year (axis) is used to show no. studies (y axis) factted by research cateogry
+data_2 <- data_2 %>%
+  mutate(new_bin = cut(Year, breaks = seq(2000, 2025, by = 5),  # Adjust to your bin size
+                       labels = c("2001-2005", "2006-2010", "2011-2015", "2016-2020", "2021-2025")))
+
+df <- data_2 %>%
+  group_by(Markers, Focus, new_bin)%>%
+  count(Markers)
+
+df$Focus <- recode_factor(df$Focus, "Popgen" = "Population Genetics", "Social" = "Social Behaviour", "Reproduction" = "Reproductive Behaviour")
+
+df$Focus <- factor(df$Focus, levels = c("Reproductive Behaviour", "Population Genetics", "Demography", "Social Behaviour"))
+
+df$Markers <- factor(df$Markers, levels = c("RFLP", "AFLP", "mSat", "SNP"))
+
+palette_sa <- c("#ffb000", "#fe6100", "#dc267f", "#785ef0", "#648fff")
+
+ggbar1 <- ggplot(df, aes(x = new_bin, y = n, fill = Markers)) +
+                   annotate(geom = "rect",
+                             xmin = "2011-2015", xmax = Inf,
+                             ymin = -Inf, ymax = Inf,
+                             fill = "grey", alpha = 0.3) +
+  geom_vline(xintercept = "2011-2015", color = "black", linetype = "dashed") +
+                   geom_bar(stat = "identity", colour = "black", width = 0.8, position = position_dodge(preserve = "single", width = 0.9))+
+                   facet_wrap(~Focus) +
+                   scale_fill_manual(values = palette_sa) +
+                   theme_bw()
+  
+  
+
+ggbar1 <- ggbar1 +
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 0.95),
+        legend.position = "bottom", 
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        axis.text = element_text(size = 11), 
+        axis.title = element_text(size = 11),
+        axis.title.y = element_text(margin = margin(0,15,0,0)), 
+        plot.margin = unit(c(1,1,1,1), "cm"), 
+        strip.text = element_text(size = 11))
+
+print(ggbar1)
+
+ggsave("temoral_markers.png",
+       plot = ggbar1,
+       width = 28,
+       height = 25,
+       units = "cm", 
+       path = "C:/Users/samue/Desktop/Honours/Chapter_1_lit_review/New_Plots", 
+       dpi = 2000
+)
+
+##------------------------------------------------------------------------------
+
+data_2 <- read.csv("relatedness_literature_review_working3.csv", stringsAsFactors = T)
+data_2$Method_PedvsMark
+
+df <- data_2 %>%
+  dplyr::group_by(Method_PedvsMark, Focus)%>%
+  count(Method_PedvsMark)
+
+
+df$Method_PedvsMark <- as.character(df$Method_PedvsMark)
+df$Focus <- as.character(df$Focus)
+
+## Seperate the values and get counts by Focus for each type but need to combine mutliples of same estomator type
+
+df_2 <- df %>%
+  mutate(Method_PedvsMark = strsplit(Method_PedvsMark, " \\+ ")) %>% # Split the combinations
+  unnest(Method_PedvsMark) %>%
+  select(Method_PedvsMark, n, Focus)
+
+## Merge the same estimator types using the group_by function...then sum the n column for these rows to get the total count for each estimator type, in each research category.
+
+df_3 <- df_2 %>%
+  group_by(Method_PedvsMark, Focus) %>%
+  summarise(Total_Frequency = sum(n, na.rm = TRUE), .groups = "drop")
+
+head(df_3)
+
+
+# Extract unique items
+unique_items <- unique(unlist(strsplit(paste(df$Method_PedvsMark, collapse = " + "), " \\+ ")))
+
+unique_items
+
+
+df_3$Focus <- recode_factor(df_3$Focus, "Popgen" = "Population Genetics", "Social" = "Social Behaviour", "Reproduction" = "Reproductive Behaviour")
+
+df_3$Focus <- factor(df_3$Focus, levels = c("Reproductive Behaviour", "Population Genetics", "Demography", "Social Behaviour"))
+
+palette_sa <- c("#ffb000", "#fe6100", "#dc267f", "#785ef0", "#648fff")
+
+ggbar1 <- ggplot(df_3, aes(x = Method_PedvsMark, 
+                           y = Total_Frequency, 
+                           fill = Method_PedvsMark)) +
+  geom_bar(stat = "identity", 
+           colour = "black", 
+           width = 0.8, 
+           position = position_dodge(preserve = "single", width = 0.9)) +
+  xlab("Estimator Type") +
+  ylab("Frequency") +
+  facet_wrap(~Focus) +
+  scale_fill_manual(values = c("#dc267f","#785ef0")) +
+  theme_bw()
+
+ggbar1 <- ggbar1 +
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 0.95),
+        legend.position = "none",
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        axis.text = element_text(size = 11), 
+        axis.title = element_text(size = 11),
+        axis.title.y = element_text(margin = margin(0,15,0,0)), 
+        plot.margin = unit(c(1,1,1,1), "cm"), 
+        strip.text = element_text(size = 11))
+
+print(ggbar1)
+
+ggsave("Est_Type.png",
+       plot = ggbar1,
+       width = 28,
+       height = 25,
+       units = "cm", 
+       path = "C:/Users/samue/Desktop/Honours/Chapter_1_lit_review/New_Plots", 
+       dpi = 2000
 )
 
