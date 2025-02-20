@@ -56,7 +56,7 @@ IUCN <- clean_data %>%
 sum(IUCN$n)
 ## Now we have count data for the number of papers each order is focussed on in included papers..
   
-## Ploit of research interest in each order...
+## Plot of research interest in each order...
 
 order_plot <- ggplot(order_data, aes(x = reorder(Order, -n, 
                                              FUN = function(x) sum(x)), y = n, fill = Focus)) +

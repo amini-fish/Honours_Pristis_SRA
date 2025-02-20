@@ -19,6 +19,7 @@ require(gridExtra)
 require(cowplot)
 require(gt)
 require(gtExtras)
+library(viridis)
 
 #-------------------------------------------------------------------------------
 
@@ -203,6 +204,22 @@ estimator <- estimator %>%
   group_by(Kinship.Method) %>%
   summarise(Total_Frequency = sum(n, na.rm = TRUE)) %>%
   arrange(desc(Total_Frequency))
+
+estimator$Kinship.Method
+
+Kinship.Method <- unique(estimator$Kinship.Method)
+
+Estimators
+
+
+Cat_Con <- c("Cat", "Cat", "Con", "Cat", "Cat/Con", 
+                       "Cat", "Con", "Con","Cat", "Con", "Cat", 
+                       "Cat", "Cat", "Con", "Cat", "Cat", "Con", "Con", "Con")
+
+
+Cat_Con_frame <- data.frame(Kinship.Method, Cat_Con)
+
+table(Cat_Con)
 
 # Print it :)
 
@@ -849,3 +866,181 @@ ggsave("supp_2.2.tiff",
 ## Supp Fig 4 - 
 
 ## Supp Fig 5 - 
+
+data <- read.csv("relatedness_literature_review_working2.csv", stringsAsFactors = T)
+data$Method_PedvsMark
+
+df <- data %>%
+  dplyr::group_by(Method_PedvsMark)%>%
+  count(Method_PedvsMark)
+
+
+df$Method_PedvsMark <- as.character(df$Method_PedvsMark)
+
+df
+
+
+## Seperate the values and get counts by Focus for each type but need to combine mutliples of same estomator type
+
+df_2 <- df %>%
+  mutate(Method_PedvsMark = strsplit(Method_PedvsMark, " \\+ ")) %>% # Split the combinations
+  unnest(Method_PedvsMark) %>%
+  select(Method_PedvsMark, n)
+
+## Merge the same estimator types using the group_by function...then sum the n column for these rows to get the total count for each estimator type, in each research category.
+df_2$Method_PedvsMark <- recode_factor(df_2$Method_PedvsMark, "Continuous " = "Continuous") 
+
+df_3 <- df_2 %>%
+  group_by(Method_PedvsMark) %>%
+  summarise(Total_Frequency = sum(n, na.rm = TRUE), .groups = "drop")
+
+head(df_3)
+
+
+# Extract unique items
+unique_items <- unique(unlist(strsplit(paste(df$Method_PedvsMark, collapse = " + "), " \\+ ")))
+
+unique_items
+
+
+df_3$Focus <- recode_factor(df_3$Focus, "Popgen" = "Population Genetics", "Social" = "Social Behaviour", "Reproduction" = "Reproductive Behaviour")
+
+df_3$Focus <- factor(df_3$Focus, levels = c("Reproductive Behaviour", "Population Genetics", "Demography", "Social Behaviour"))
+
+df_3
+
+##------------------------- Without focus but with year -------------------------##
+
+data <- data %>%
+  mutate(new_bin = cut(Year, breaks = seq(2000, 2025, by = 5),
+                       labels = c("2001-2005", "2006-2010", "2011-2015", "2016-2020", "2021-2025")))
+
+## Just to get how many of each estimator 
+
+df <- data %>%
+  dplyr::group_by(Method_PedvsMark, new_bin)%>%
+  count(Method_PedvsMark)
+
+df$Method_PedvsMark <- as.character(df$Method_PedvsMark)
+
+df
+
+## Seperate the values and get counts by Focus for each type but need to combine mutliples of same estomator type
+
+df_2 <- df %>%
+  mutate(Method_PedvsMark = strsplit(Method_PedvsMark, " \\+ ")) %>% # Split the combinations
+  unnest(Method_PedvsMark) %>%
+  select(new_bin, Method_PedvsMark, n)
+
+df_2
+
+## Merge the same estimator types using the group_by function...then sum the n column for these rows to get the total count for each estimator type, in each research category.
+df_2$Method_PedvsMark <- recode_factor(df_2$Method_PedvsMark, "Continuous " = "Continuous") 
+
+df_3 <- df_2 %>%
+  group_by(new_bin, Method_PedvsMark) %>%
+  summarise(Total_Frequency = sum(n, na.rm = TRUE), .groups = "drop")
+
+print(df_3)
+
+palette_sa <- c ("grey","orange", "skyblue")
+
+plot <- ggbarplot(df_3, x = "Method_PedvsMark", y = "Total_Frequency",
+                    fill = "Method_PedvsMark",
+                  width = 0.5,
+                    position = position_dodge(preserve = "single"),
+                    facet.by = "new_bin", 
+                    palette = palette_sa,
+                    ylab = "Frequency of use", 
+                  xlab = "Estimator Type",
+                    rotate = F,
+                    dot.size = 10,
+                    ggtheme = theme_bw())
+
+plot <- plot + theme(legend.position = "none",
+                         panel.grid.major = element_blank(), 
+                         panel.grid.minor = element_blank(), 
+                         axis.text = element_text(size = 11), 
+                         axis.title = element_text(size = 11), 
+                         axis.text.x = element_text(angle = 0),
+                         axis.title.y = element_text(margin = margin(0,15,0,0)), 
+                         plot.margin = unit(c(1,1,1,1), "cm"), 
+                         strip.text = element_text(size = 11)) +
+  guides(colour = guide_legend(override.aes = list(size = 3), nrow = 3))
+
+print(plot)
+
+ggsave("estimator_type_temporal.png",
+       plot = plot,
+       width = 20,
+       height = 20,
+       units = "cm", 
+       path = "C:/Users/samue/Desktop/Honours/Chapter_1_lit_review/New_Plots", 
+       dpi = 2000
+)
+
+##------------------------- Estimators over time -------------------------##
+
+estimator <- data %>% 
+  group_by(Kinship.Method, new_bin)%>%
+  count(Kinship.Method, sort= T)
+
+print(estimator, n = 45) # quick visual check
+
+estimator$Kinship.Method <- as.character(estimator$Kinship.Method)
+
+# Here we're essentially telling R to split anything with a + and place it into the column named Kinship.Method and then selecting only estiamtor names and their counts
+
+estimator <- estimator %>%
+  mutate(Kinship.Method = strsplit(Kinship.Method, " \\+ ")) %>% 
+  unnest(Kinship.Method) %>%
+  group_by(Kinship.Method, new_bin) %>%
+  summarise(n = sum(n), .groups = "drop")%>%
+  arrange(desc(n))
+
+print(estimator, n = 70)
+# But there is a catch 
+# There will be some data cleaning to do now that we have split things...it's just a part of it but can be prone to errors.
+
+estimator$Kinship.Method <- recode_factor(estimator$Kinship.Method, "CERVUS " = "CERVUS", "Allele counts  " = "Allele counts", "CKMRsim " = "CKMRsim", "KinGroup  " = "KinGroup", "Sequioa " = "Sequoia", "Cervus" = "CERVUS")
+
+# Now, after some more visual checks we're confident we have removed any typos we can transform and count our estimator use properly
+
+estimator$Kinship.Method <- as.character(estimator$Kinship.Method)
+
+estimator <- estimator %>%
+  group_by(Kinship.Method, new_bin) %>%
+  summarise(Total_Frequency = sum(n, na.rm = TRUE)) %>%
+  arrange(desc(Total_Frequency))
+
+estimator <- estimator %>%
+  left_join(Cat_Con_frame, by = "Kinship.Method") %>%
+  arrange(Kinship.Method)
+
+print(estimator)
+
+palette_sa <- c ("skyblue", "orange", "grey")
+
+plot <- ggplot(estimator, aes(x = Kinship.Method, y = Total_Frequency, fill = Cat_Con.y)) +
+  geom_bar(stat = "identity", col = "black", width = 0.7, position = position_dodge(preserve = "single")) +
+  facet_wrap(~ new_bin, scales = "free_x") +
+  scale_fill_manual(values = palette_sa) +
+  labs(y = "Frequency of use", x = "Estimator Type") +
+  theme_bw() +
+  theme(
+    legend.position = "bottom",
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    axis.text = element_text(size = 10),
+    axis.title = element_text(size = 11),
+    axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1),
+    axis.title.y = element_text(margin = margin(0, 15, 0, 0)),
+    axis.title.x = element_text(margin = margin(10, 0, 0, 0)),
+    plot.margin = unit(c(1, 1, 1, 1), "cm"),
+    strip.text = element_text(size = 11)
+  ) + guides(colour = guide_legend(override.aes = list(size = 3), nrow = 3))
+
+print(plot)
+
+?scale_fill_viridis
+## Without facet

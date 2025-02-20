@@ -476,6 +476,10 @@ unique_items <- unique(unlist(strsplit(paste(estimator$Kinship.Method, collapse 
 
 unique_items
 
+estimator$Kinship.Method <- recode(estimator$Kinship.Method, "VFCtools (Yang)" = "VCFtools", "VCFtools " = "VFCtools")
+
+print(estimator, n = 22)
+
 # Initialize matrix
 matrix <- matrix(0, nrow = length(unique_items), ncol = length(unique_items),
                  dimnames = list(unique_items, unique_items))
@@ -581,7 +585,7 @@ expanded_data <- estimator2 %>%
   unnest(Kinship.Method) %>%
   select(Kinship.Method, n, Focus)
 
-expanded_data$Kinship.Method <- recode_factor(expanded_data$Kinship.Method, "Cervus" = "CERVUS", "CERVUS " = "CERVUS")
+expanded_data$Kinship.Method <- recode_factor(expanded_data$Kinship.Method, "Cervus" = "CERVUS", "CERVUS " = "CERVUS", "VCFtools (Yang)" = "VFCtools", "CKMRsim " = "CKMRsim", "Sequioa " = "Sequoia", "GENAlEX" = "GenAlEx", "KING" = "KING-Robust")
 
 expanded_data$Kinship.Method <- as.character(expanded_data$Kinship.Method)
 expanded_data$Focus <- as.character(expanded_data$Focus)
@@ -598,16 +602,28 @@ expanded_data$Focus <- factor(expanded_data$Focus, levels = c("Reproduction", "P
 
 print(expanded_data, n = 50)
 
+estimator <- estimator %>%
+  mutate(Cat_Con = ifelse(is.na(Cat_Con), "Con", Cat_Con))
+
+estimator <- expanded_data %>%
+  left_join(Cat_Con_frame, by = "Kinship.Method") %>%
+  arrange(Kinship.Method)
+
+
+
+print(estimator, n = 50)
 ## Plot this data 
 
-plot_10 <- ggdotchart(expanded_data, 
+palette_sa <- c ("skyblue", "orange", "grey")
+
+plot_10 <- ggdotchart(estimator, 
            x = "Kinship.Method", 
            y = "Total_Frequency",
-           palette = "",
            ylab = "Number of studies", 
            xlab = "Relatedness Estimator",
            facet.by = "Focus",
-           color = "Kinship.Method", 
+           color = "Cat_Con", 
+           palette = palette_sa,
            dot.size = 7, 
            rotate = T,
            label = round(expanded_data$Total_Frequency,1), 
@@ -639,11 +655,11 @@ ggsave("plot_10.tiff",
        )
 
 
-
-
 ## All together - no facet 
 
 ## Need to reowrk the data to sum by estimator and not focus*estimator
+
+
 
 estimator2 <- data2 %>% 
   group_by(Kinship.Method)%>%
@@ -664,17 +680,25 @@ expanded_data$Kinship.Method <- as.character(expanded_data$Kinship.Method)
 
 expanded_data <- expanded_data %>%
   group_by(Kinship.Method) %>%
-  summarise(Total_Frequency = sum(n, na.rm = TRUE))
+  summarise(Total_Frequency = sum(Total_Frequency, na.rm = TRUE))
 
-expanded_data
+estimator <- expanded_data %>%
+  left_join(Cat_Con_frame, by = "Kinship.Method") %>%
+  arrange(Kinship.Method)
 
-plot_11 <- ggdotchart(expanded_data, 
+
+estimator <- estimator %>%
+  mutate(Cat_Con = ifelse(is.na(Cat_Con), "Con", Cat_Con))
+
+print(estimator, n = 209)
+
+plot_11 <- ggdotchart(estimator, 
                      x = "Kinship.Method", 
                      y = "Total_Frequency",
-                     palette = "",
+                     palette = palette_sa,
                      ylab = "Number of studies", 
                      xlab = "Relatedness Estimator",
-                     color = "Kinship.Method", 
+                     color = "Cat_Con", 
                      dot.size = 10, 
                      rotate = T,
                      label = round(expanded_data$Total_Frequency,1), 
@@ -705,7 +729,7 @@ ggsave("plot_11.tiff",
 )
 
 
-plot_12 <- plot_grid(plot_10, plot_11,
+plot_12 <- plot_grid(plot_11, plot_10,
                      ncol = 2)
 
 print(plot_12)
@@ -1404,6 +1428,8 @@ df <- data_2 %>%
 df$Method_PedvsMark <- as.character(df$Method_PedvsMark)
 df$Focus <- as.character(df$Focus)
 
+
+df
 ## Seperate the values and get counts by Focus for each type but need to combine mutliples of same estomator type
 
 df_2 <- df %>%
@@ -1429,6 +1455,8 @@ unique_items
 df_3$Focus <- recode_factor(df_3$Focus, "Popgen" = "Population Genetics", "Social" = "Social Behaviour", "Reproduction" = "Reproductive Behaviour")
 
 df_3$Focus <- factor(df_3$Focus, levels = c("Reproductive Behaviour", "Population Genetics", "Demography", "Social Behaviour"))
+
+df_3
 
 palette_sa <- c("#ffb000", "#fe6100", "#dc267f", "#785ef0", "#648fff")
 
@@ -1466,4 +1494,3 @@ ggsave("Est_Type.png",
        path = "C:/Users/samue/Desktop/Honours/Chapter_1_lit_review/New_Plots", 
        dpi = 2000
 )
-
