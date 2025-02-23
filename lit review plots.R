@@ -58,50 +58,11 @@ tab_1 <- data %>%
   print(n = 50)
 
 # plot iOrder# plot it 
-tab_1
 
-plot_1 <- ggdotchart(tab_1, x = "Family", y = "n", 
-           color = "Order", 
-           ylab = "Number of studies",
-           palette = "Spectral",
-           sorting = "descending",
-           add = "segments", 
-           rotate = T, 
-           group = "Order", 
-           dot.size = 10, 
-           label = round(tab_1$n,1),                        # Add mpg values as dot labels
-           font.label = list(color = "black", size = 9, 
-                             vjust = 0.5),           # Adjust label parameters
-           ggtheme = theme_bw()                        # ggplot2 theme
-)+
-  geom_hline(yintercept = 0, linetype = 2, color = "lightgray") 
-
-plot_1 <- plot_1 + theme(legend.position = "bottom", 
-               panel.grid.major = element_blank(), 
-               panel.grid.minor = element_blank(), 
-               axis.text = element_text(size = 12), 
-               axis.title = element_text(size = 12), 
-               axis.title.y = element_text(margin = margin(0,15,0,0)), 
-               plot.margin = unit(c(1,1,1,1), "cm")) +
-  guides(colour = guide_legend(override.aes = list(size = 3), nrow = 3))
-
-print(plot_1)
-
-ggsave("plot_1.tiff",
-       plot = plot_1,
-       width = 28,
-       height = 25, 
-       units = "cm", 
-       path = "C:/Users/samue/Desktop/Honours/Chapter_1_lit_review/New_Plots", 
-       dpi = 1000
-)
-
-
-## try this instead
 plot_2 <- ggdotchart(tab_1, x = "Family", y = "n",
            color = "Order", # Custom color palette
-           sorting = "Descending", 
-           palette = "Spectral",
+           sorting = "descending", 
+           palette = get_palette(c("#00AFBB", "#E7B800", "#FC4E07"), 10),
            ylab = "Number of studies",# Sort value in descending order
            rotate = TRUE,                                # Rotate vertically
            dot.size = 10,
@@ -163,7 +124,7 @@ plot_3 <- ggdotchart(tab_2, x = "Family", y = "n",
                      color = "Order",
                      group = "Order",
                      facet.by = "Focus", 
-                     palette = "Spectral",
+                     palette = get_palette(c("#00AFBB", "#E7B800", "#FC4E07"), 10),
                      sorting = "descending",
                      ylab = "Number of studies",
                      rotate = T,
@@ -225,15 +186,17 @@ tab_4 <- data2 %>%
 
 tab_4 
 
-tab_4$Focus <- recode_factor(tab_4$Focus, "Popgen" = "Population Genetics", "Social" = "Sociality")
+tab_4$Focus <- recode_factor(tab_4$Focus, "Popgen" = "Population Genetics", "Social" = "Social Behaviour", "Reproduction" = "Reproductive Behaviour")
 
-tab_4$Focus <- factor(tab_4$Focus, levels = c("Reproduction", "Population Genetics", "Demography", "Sociality"))
+tab_4$Focus <- factor(tab_4$Focus, levels = c("Reproductive Behaviour", "Population Genetics", "Demography", "Social Behaviour"))
+tab_4$Markers <- factor(tab_4$Markers, levels = c("mSat", "SNP", "AFLP", "RFLP"))
+palette_sa <- palette_sa <- c ("yellow2", "skyblue","grey","orange")
 
 plot_4 <- ggbarplot(tab_4, x = "Markers", y = "n",
                      fill = "Markers",
                      facet.by = "Focus", 
                     xlab = "",
-                    palette = c("grey","orange"), # Custom color palette
+                    palette = palette_sa, # Custom color palette
                      sorting = "descending", 
                      ylab = "Number of studies",# Sort value in descending order
                      rotate = F,
@@ -267,10 +230,12 @@ tab_4 <- data2 %>%
   group_by(Markers) %>%
   count(Markers, sort = T)
 
+tab_4$Markers <- factor(tab_4$Markers, levels = c("mSat", "SNP", "AFLP", "RFLP"))
+palette_sa <- palette_sa <- c ("skyblue","orange","yellow2","grey")
 
 plot_X <- ggbarplot(tab_4, x = "Markers", y = "n",
                     fill = "Markers",
-                    palette = c("grey","orange"),
+                    palette = palette_sa,
                     sorting = "descending", 
                     ylab = "Number of studies",
                     xlab = "",
@@ -334,7 +299,8 @@ tab_4$Markers <- factor(tab_4$Markers, levels = c("RFLP", "AFLP", "mSat", "SNP")
 
 ## Temporal patterns ## 
 
-palette_sa <- c("#ffb000", "#fe6100", "#dc267f", "#785ef0", "#648fff")
+palette_sa <- c ("skyblue","orange","yellow2","grey")
+
 
 plot_6 <- ggbarplot(tab_4, x = "Markers", y = "n",
                     fill = "Focus",
@@ -754,42 +720,6 @@ print(plot_merge1)
 
 data$logpwr <- log(data$Power_comp) # note that we log transform to make y axis more easy to interpret
 
-plot_13 <- ggboxplot(data = data, 
-                     x = "Markers", 
-                     y = "logpwr", 
-                    xlab = "", 
-                     ylab = "log(Marker Power)", 
-                     palette = c("grey","orange"),
-                     fill = "Markers") +
-  theme_bw() +
-  geom_jitter(data = data, 
-              aes(x = Markers, y = logpwr), 
-              alpha = 0.5,
-              size = 3,
-              position = position_jitter(height = .2, width = .2)) +
-  theme(legend.position = "bottom", 
-        panel.grid.major = element_blank(), 
-        panel.grid.minor = element_blank(), 
-        axis.text = element_text(size = 12), 
-        axis.title = element_text(size = 12), 
-        axis.title.y = element_text(margin = margin(0,15,0,0)), 
-        plot.margin = unit(c(1,1,1,1), "cm")) +
-  guides(size = FALSE, fill = FALSE)
-
-print(plot_13)
-
-ggsave("plot_13.tiff",
-       plot = plot_13,
-       width = 28,
-       height = 25, 
-       units = "cm", 
-       path = "C:/Users/samue/Desktop/Honours/Chapter_1_lit_review/New_Plots", 
-       dpi = 1000
-)
-
-
-## A cleveland plot could also be great for the overview of estimator use
-
 
 ## Maybe colour by categorical and continuous estimators? 
 
@@ -1035,33 +965,34 @@ focus_cum$Focus <- recode_factor(focus_cum$Focus, "Popgen" = "Population Genetic
 
 focus_cum$Focus <- factor(focus_cum$Focus, levels = c("Reproduction", "Population Genetics", "Demography", "Sociality"))
 
-cumplot_1 <- ggline(data = focus_cum, 
-       x = "Year",
-       y = "cumulative_count",
-       color = "Focus",
-       group = "Focus", 
-       plot_type = "l", 
-       palette = "Spectral",
-       size = 1,
-       ggtheme = theme_bw()) +
+palette_focus <- c("lightcoral", "Darkblue", "Skyblue", "Orange")
+
+cumplot_1 <- ggplot(data = focus_cum, aes(x = Year, y = cumulative_count, color = Focus, group = Focus)) +
+  #annotate("rect", xmin = 2015, xmax = Inf, ymin = -Inf, ymax = Inf, fill = "grey94") +
+  geom_line(size = 1) +
+  geom_vline(xintercept = 2015, linetype = "dashed", color = "black", size = 1) +
+  scale_color_manual(values = palette_focus) +
   labs(
     x = "Year",
     y = "Number of studies",
-    color = "Focus") 
-  
-
-cumplot_1 <- cumplot_1 + theme(legend.position = "bottom", 
-                               panel.grid.major = element_blank(), 
-                               panel.grid.minor = element_blank(), 
-                               axis.text = element_text(size = 12), 
-                               axis.title = element_text(size = 12), 
-                               axis.title.y = element_text(margin = margin(0,15,0,0)), 
-                               plot.margin = unit(c(1,1,1,1), "cm")) +
-  guides(colour = guide_legend(override.aes = list(size = 3), nrow = 1))
-
+    color = "Focus"
+  ) +
+  theme_bw() +
+  theme(
+    legend.position = "none",
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    axis.text = element_text(size = 12),
+    axis.title = element_text(size = 12),
+    axis.title.y = element_text(margin = margin(0, 15, 0, 0)),
+    plot.margin = unit(c(1, 1, 1, 1), "cm")
+  ) +
+  guides(colour = guide_legend(override.aes = list(size = 3), nrow = 1)) +
+  scale_y_continuous(limits = c(0, 55), breaks = seq(0, 55, by = 10))
 
 print(cumplot_1)
-
+      
+    
 ggsave("cumplot_1.tiff",
        plot = cumplot_1,
        width = 28,
@@ -1078,17 +1009,27 @@ marker_cum <-  data %>%
   arrange(Year) %>%
   mutate(cumulative_count = row_number())
 
+marker_cum <- marker_cum %>%
+  filter(!Markers %in% c("AFLP", "RFLP")) %>%
+  droplevels()
+
+table(marker_cum$Markers)
+
+
+palette_sa <- c ("skyblue", "orange")
+marker_cum$Markers <- factor(marker_cum$Markers, levels = c("RFLP", "AFLP", "mSat", "SNP"))
+
 cumplot_2 <- ggline(data = marker_cum, 
                     x = "Year",
                     y = "cumulative_count",
                     color = "Markers",
                     group = "Markers", 
                     plot_type = "l", 
-                    palette = c("grey", "orange"),
+                    palette = palette_sa,
                     size = 1,
                     ggtheme = theme_bw()) +
   labs(
-    x = "",
+    x = "Year",
     y = "Number of studies",
     color = "Marker") 
 
@@ -1096,7 +1037,7 @@ cumplot_2 <- ggline(data = marker_cum,
 cumplot_2 <- cumplot_2 + theme(legend.position = "bottom", 
                                panel.grid.major = element_blank(), 
                                panel.grid.minor = element_blank(), 
-                               axis.text = element_text(size = 12), 
+                               axis.text = element_text(size = 10), 
                                axis.title = element_text(size = 12), 
                                axis.title.y = element_text(margin = margin(0,15,0,0)), 
                                plot.margin = unit(c(1,1,1,1), "cm")) +
@@ -1145,7 +1086,7 @@ focus_simple_plot <- ggbarplot(data = focus_simple,
               x = "Focus", 
               y = "n", 
           fill = "Focus", 
-          palette = "Spectral", 
+          palette = palette_focus, 
           ylab = "Number of studies",
           ggtheme = theme_bw()) 
 
@@ -1157,6 +1098,8 @@ focus_simple_plot <- focus_simple_plot + theme(legend.position = "bottom",
                           axis.title.y = element_text(margin = margin(0,15,0,0)), 
                           plot.margin = unit(c(1,1,1,1), "cm")) +
   guides(fill = F)
+
+print(focus_simple_plot)
 
 ggsave("focus_all.tiff",
        plot = focus_simple_plot,
@@ -1378,13 +1321,16 @@ df$Focus <- factor(df$Focus, levels = c("Reproductive Behaviour", "Population Ge
 
 df$Markers <- factor(df$Markers, levels = c("RFLP", "AFLP", "mSat", "SNP"))
 
-palette_sa <- c("#ffb000", "#fe6100", "#dc267f", "#785ef0", "#648fff")
+palette_sa <- palette_sa <- c ("grey","yellow2", "skyblue","orange")
 
 ggbar1 <- ggplot(df, aes(x = new_bin, y = n, fill = Markers)) +
                    annotate(geom = "rect",
                              xmin = "2011-2015", xmax = Inf,
                              ymin = -Inf, ymax = Inf,
-                             fill = "grey", alpha = 0.3) +
+                             fill = "#E5E5E5") +
+  
+  xlab("Year") +
+  ylab("Number of studies") +
   geom_vline(xintercept = "2011-2015", color = "black", linetype = "dashed") +
                    geom_bar(stat = "identity", colour = "black", width = 0.8, position = position_dodge(preserve = "single", width = 0.9))+
                    facet_wrap(~Focus) +
@@ -1395,7 +1341,7 @@ ggbar1 <- ggplot(df, aes(x = new_bin, y = n, fill = Markers)) +
 
 ggbar1 <- ggbar1 +
   theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 0.95),
-        legend.position = "bottom", 
+        legend.position = "none", 
         panel.grid.major = element_blank(),
         panel.grid.minor = element_blank(),
         axis.text = element_text(size = 11), 
@@ -1458,7 +1404,7 @@ df_3$Focus <- factor(df_3$Focus, levels = c("Reproductive Behaviour", "Populatio
 
 df_3
 
-palette_sa <- c("#ffb000", "#fe6100", "#dc267f", "#785ef0", "#648fff")
+palette_sa <- c ("grey","orange", "skyblue")
 
 ggbar1 <- ggplot(df_3, aes(x = Method_PedvsMark, 
                            y = Total_Frequency, 

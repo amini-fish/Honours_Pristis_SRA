@@ -240,32 +240,7 @@ sd(power_comp$Power_comp, na.rm = T)
 
 # it is also a good idea to do some kind of statistical test (t-test) 
 
-hist(power_comp$Power_comp) # extremely skewed...need to transform 
-
-power_comp <- power_comp %>%
-  mutate(Power_comp, log_pwr = log(Power_comp))
-
-hist(power_comp$log_pwr)
-
-power_comp <- power_comp %>%
-  mutate(power_comp, log10_pwr = log10(Power_comp))
-
-
-hist(power_comp$log10_pwr)
-
-## THis will need some serious thought as to how to transform, and whether to just do a non-parametric test instead becasue I don't think it'll ever fit a normal dist or satisfy assumption. 
-## mann-whitney U test 
-
-res <- wilcox.test(log_pwr ~ Markers, 
-                   data = power_comp,
-                   exact = F)
-
-
-res
-
-#-------------------------------------------------------------------------------
-
-## Section 2 - Categories (will get to this later as less urgent)
+####--------------------Section 2 Categories--------------------####
 
 # Overall number of studies by research category
 
@@ -330,10 +305,7 @@ expanded_est$Focus <- factor(expanded_est$Focus, levels = c("Reproduction", "Pop
 
 print(expanded_est, n = 50)
 
-
-#-------------------------------------------------------------------------------
-
-## Section 3 - Reproductive behavior - use data_2 
+####----------- Section 3 - Reproductive behavior ----------------####
 
 # first thing is first - we need to get all the studies focused on repro 
 
@@ -723,6 +695,10 @@ expanded_est %>%
   filter(Focus == "Sociality") %>%
   arrange(desc(Total_Frequency)) #BOOM!!
 
+
+(1361 + 3057)/2
+
+sd(c(1361,3057))
 #-------------------------------------------------------------------------------
 
 ## Section 7 - Miscellaneous 
