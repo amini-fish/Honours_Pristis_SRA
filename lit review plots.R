@@ -58,11 +58,50 @@ tab_1 <- data %>%
   print(n = 50)
 
 # plot iOrder# plot it 
+tab_1
 
+plot_1 <- ggdotchart(tab_1, x = "Family", y = "n", 
+           color = "Order", 
+           ylab = "Number of studies",
+           palette = "Spectral",
+           sorting = "descending",
+           add = "segments", 
+           rotate = T, 
+           group = "Order", 
+           dot.size = 10, 
+           label = round(tab_1$n,1),                        # Add mpg values as dot labels
+           font.label = list(color = "black", size = 9, 
+                             vjust = 0.5),           # Adjust label parameters
+           ggtheme = theme_bw()                        # ggplot2 theme
+)+
+  geom_hline(yintercept = 0, linetype = 2, color = "lightgray") 
+
+plot_1 <- plot_1 + theme(legend.position = "bottom", 
+               panel.grid.major = element_blank(), 
+               panel.grid.minor = element_blank(), 
+               axis.text = element_text(size = 12), 
+               axis.title = element_text(size = 12), 
+               axis.title.y = element_text(margin = margin(0,15,0,0)), 
+               plot.margin = unit(c(1,1,1,1), "cm")) +
+  guides(colour = guide_legend(override.aes = list(size = 3), nrow = 3))
+
+print(plot_1)
+
+ggsave("plot_1.tiff",
+       plot = plot_1,
+       width = 28,
+       height = 25, 
+       units = "cm", 
+       path = "C:/Users/samue/Desktop/Honours/Chapter_1_lit_review/New_Plots", 
+       dpi = 1000
+)
+
+
+## try this instead
 plot_2 <- ggdotchart(tab_1, x = "Family", y = "n",
            color = "Order", # Custom color palette
-           sorting = "descending", 
-           palette = get_palette(c("#00AFBB", "#E7B800", "#FC4E07"), 10),
+           sorting = "Descending", 
+           palette = "Spectral",
            ylab = "Number of studies",# Sort value in descending order
            rotate = TRUE,                                # Rotate vertically
            dot.size = 10,
@@ -124,7 +163,7 @@ plot_3 <- ggdotchart(tab_2, x = "Family", y = "n",
                      color = "Order",
                      group = "Order",
                      facet.by = "Focus", 
-                     palette = get_palette(c("#00AFBB", "#E7B800", "#FC4E07"), 10),
+                     palette = "Spectral",
                      sorting = "descending",
                      ylab = "Number of studies",
                      rotate = T,
@@ -186,17 +225,15 @@ tab_4 <- data2 %>%
 
 tab_4 
 
-tab_4$Focus <- recode_factor(tab_4$Focus, "Popgen" = "Population Genetics", "Social" = "Social Behaviour", "Reproduction" = "Reproductive Behaviour")
+tab_4$Focus <- recode_factor(tab_4$Focus, "Popgen" = "Population Genetics", "Social" = "Sociality")
 
-tab_4$Focus <- factor(tab_4$Focus, levels = c("Reproductive Behaviour", "Population Genetics", "Demography", "Social Behaviour"))
-tab_4$Markers <- factor(tab_4$Markers, levels = c("mSat", "SNP", "AFLP", "RFLP"))
-palette_sa <- palette_sa <- c ("yellow2", "skyblue","grey","orange")
+tab_4$Focus <- factor(tab_4$Focus, levels = c("Reproduction", "Population Genetics", "Demography", "Sociality"))
 
 plot_4 <- ggbarplot(tab_4, x = "Markers", y = "n",
                      fill = "Markers",
                      facet.by = "Focus", 
                     xlab = "",
-                    palette = palette_sa, # Custom color palette
+                    palette = c("grey","orange"), # Custom color palette
                      sorting = "descending", 
                      ylab = "Number of studies",# Sort value in descending order
                      rotate = F,
@@ -230,12 +267,10 @@ tab_4 <- data2 %>%
   group_by(Markers) %>%
   count(Markers, sort = T)
 
-tab_4$Markers <- factor(tab_4$Markers, levels = c("mSat", "SNP", "AFLP", "RFLP"))
-palette_sa <- palette_sa <- c ("skyblue","orange","yellow2","grey")
 
 plot_X <- ggbarplot(tab_4, x = "Markers", y = "n",
                     fill = "Markers",
-                    palette = palette_sa,
+                    palette = c("grey","orange"),
                     sorting = "descending", 
                     ylab = "Number of studies",
                     xlab = "",
@@ -299,14 +334,11 @@ tab_4$Markers <- factor(tab_4$Markers, levels = c("RFLP", "AFLP", "mSat", "SNP")
 
 ## Temporal patterns ## 
 
-palette_sa <- c ("skyblue","orange","yellow2","grey")
-
-
 plot_6 <- ggbarplot(tab_4, x = "Markers", y = "n",
                     fill = "Focus",
                     position = position_dodge(preserve = "single"),
                     facet.by = "new_bin", 
-                    palette = palette_sa,
+                    palette = "Paired",
                     ylab = "Number of studies", 
                     rotate = F,
                     dot.size = 10,
@@ -325,13 +357,13 @@ plot_6 <- plot_6 + theme(legend.position = "bottom",
 
 print(plot_6)
 
-ggsave("temporal_trend_grouped.png",
+ggsave("temporal_trend.tiff",
        plot = plot_6,
        width = 28,
        height = 25,
        units = "cm", 
        path = "C:/Users/samue/Desktop/Honours/Chapter_1_lit_review/New_Plots", 
-       dpi = 2000
+       dpi = 1500
 )
 
 ## I like this, but there could be alterantive ways to present this that look even better? 
@@ -442,10 +474,6 @@ unique_items <- unique(unlist(strsplit(paste(estimator$Kinship.Method, collapse 
 
 unique_items
 
-estimator$Kinship.Method <- recode(estimator$Kinship.Method, "VFCtools (Yang)" = "VCFtools", "VCFtools " = "VFCtools")
-
-print(estimator, n = 22)
-
 # Initialize matrix
 matrix <- matrix(0, nrow = length(unique_items), ncol = length(unique_items),
                  dimnames = list(unique_items, unique_items))
@@ -551,7 +579,7 @@ expanded_data <- estimator2 %>%
   unnest(Kinship.Method) %>%
   select(Kinship.Method, n, Focus)
 
-expanded_data$Kinship.Method <- recode_factor(expanded_data$Kinship.Method, "Cervus" = "CERVUS", "CERVUS " = "CERVUS", "VCFtools (Yang)" = "VFCtools", "CKMRsim " = "CKMRsim", "Sequioa " = "Sequoia", "GENAlEX" = "GenAlEx", "KING" = "KING-Robust")
+expanded_data$Kinship.Method <- recode_factor(expanded_data$Kinship.Method, "Cervus" = "CERVUS", "CERVUS " = "CERVUS")
 
 expanded_data$Kinship.Method <- as.character(expanded_data$Kinship.Method)
 expanded_data$Focus <- as.character(expanded_data$Focus)
@@ -568,28 +596,16 @@ expanded_data$Focus <- factor(expanded_data$Focus, levels = c("Reproduction", "P
 
 print(expanded_data, n = 50)
 
-estimator <- estimator %>%
-  mutate(Cat_Con = ifelse(is.na(Cat_Con), "Con", Cat_Con))
-
-estimator <- expanded_data %>%
-  left_join(Cat_Con_frame, by = "Kinship.Method") %>%
-  arrange(Kinship.Method)
-
-
-
-print(estimator, n = 50)
 ## Plot this data 
 
-palette_sa <- c ("skyblue", "orange", "grey")
-
-plot_10 <- ggdotchart(estimator, 
+plot_10 <- ggdotchart(expanded_data, 
            x = "Kinship.Method", 
            y = "Total_Frequency",
+           palette = "",
            ylab = "Number of studies", 
            xlab = "Relatedness Estimator",
            facet.by = "Focus",
-           color = "Cat_Con", 
-           palette = palette_sa,
+           color = "Kinship.Method", 
            dot.size = 7, 
            rotate = T,
            label = round(expanded_data$Total_Frequency,1), 
@@ -621,11 +637,11 @@ ggsave("plot_10.tiff",
        )
 
 
+
+
 ## All together - no facet 
 
 ## Need to reowrk the data to sum by estimator and not focus*estimator
-
-
 
 estimator2 <- data2 %>% 
   group_by(Kinship.Method)%>%
@@ -646,25 +662,17 @@ expanded_data$Kinship.Method <- as.character(expanded_data$Kinship.Method)
 
 expanded_data <- expanded_data %>%
   group_by(Kinship.Method) %>%
-  summarise(Total_Frequency = sum(Total_Frequency, na.rm = TRUE))
+  summarise(Total_Frequency = sum(n, na.rm = TRUE))
 
-estimator <- expanded_data %>%
-  left_join(Cat_Con_frame, by = "Kinship.Method") %>%
-  arrange(Kinship.Method)
+expanded_data
 
-
-estimator <- estimator %>%
-  mutate(Cat_Con = ifelse(is.na(Cat_Con), "Con", Cat_Con))
-
-print(estimator, n = 209)
-
-plot_11 <- ggdotchart(estimator, 
+plot_11 <- ggdotchart(expanded_data, 
                      x = "Kinship.Method", 
                      y = "Total_Frequency",
-                     palette = palette_sa,
+                     palette = "",
                      ylab = "Number of studies", 
                      xlab = "Relatedness Estimator",
-                     color = "Cat_Con", 
+                     color = "Kinship.Method", 
                      dot.size = 10, 
                      rotate = T,
                      label = round(expanded_data$Total_Frequency,1), 
@@ -695,7 +703,7 @@ ggsave("plot_11.tiff",
 )
 
 
-plot_12 <- plot_grid(plot_11, plot_10,
+plot_12 <- plot_grid(plot_10, plot_11,
                      ncol = 2)
 
 print(plot_12)
@@ -719,6 +727,42 @@ print(plot_merge1)
 ## Plot 10 
 
 data$logpwr <- log(data$Power_comp) # note that we log transform to make y axis more easy to interpret
+
+plot_13 <- ggboxplot(data = data, 
+                     x = "Markers", 
+                     y = "logpwr", 
+                    xlab = "", 
+                     ylab = "log(Marker Power)", 
+                     palette = c("grey","orange"),
+                     fill = "Markers") +
+  theme_bw() +
+  geom_jitter(data = data, 
+              aes(x = Markers, y = logpwr), 
+              alpha = 0.5,
+              size = 3,
+              position = position_jitter(height = .2, width = .2)) +
+  theme(legend.position = "bottom", 
+        panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(), 
+        axis.text = element_text(size = 12), 
+        axis.title = element_text(size = 12), 
+        axis.title.y = element_text(margin = margin(0,15,0,0)), 
+        plot.margin = unit(c(1,1,1,1), "cm")) +
+  guides(size = FALSE, fill = FALSE)
+
+print(plot_13)
+
+ggsave("plot_13.tiff",
+       plot = plot_13,
+       width = 28,
+       height = 25, 
+       units = "cm", 
+       path = "C:/Users/samue/Desktop/Honours/Chapter_1_lit_review/New_Plots", 
+       dpi = 1000
+)
+
+
+## A cleveland plot could also be great for the overview of estimator use
 
 
 ## Maybe colour by categorical and continuous estimators? 
@@ -965,34 +1009,33 @@ focus_cum$Focus <- recode_factor(focus_cum$Focus, "Popgen" = "Population Genetic
 
 focus_cum$Focus <- factor(focus_cum$Focus, levels = c("Reproduction", "Population Genetics", "Demography", "Sociality"))
 
-palette_focus <- c("lightcoral", "Darkblue", "Skyblue", "Orange")
-
-cumplot_1 <- ggplot(data = focus_cum, aes(x = Year, y = cumulative_count, color = Focus, group = Focus)) +
-  #annotate("rect", xmin = 2015, xmax = Inf, ymin = -Inf, ymax = Inf, fill = "grey94") +
-  geom_line(size = 1) +
-  geom_vline(xintercept = 2015, linetype = "dashed", color = "black", size = 1) +
-  scale_color_manual(values = palette_focus) +
+cumplot_1 <- ggline(data = focus_cum, 
+       x = "Year",
+       y = "cumulative_count",
+       color = "Focus",
+       group = "Focus", 
+       plot_type = "l", 
+       palette = "Spectral",
+       size = 1,
+       ggtheme = theme_bw()) +
   labs(
     x = "Year",
     y = "Number of studies",
-    color = "Focus"
-  ) +
-  theme_bw() +
-  theme(
-    legend.position = "none",
-    panel.grid.major = element_blank(),
-    panel.grid.minor = element_blank(),
-    axis.text = element_text(size = 12),
-    axis.title = element_text(size = 12),
-    axis.title.y = element_text(margin = margin(0, 15, 0, 0)),
-    plot.margin = unit(c(1, 1, 1, 1), "cm")
-  ) +
-  guides(colour = guide_legend(override.aes = list(size = 3), nrow = 1)) +
-  scale_y_continuous(limits = c(0, 55), breaks = seq(0, 55, by = 10))
+    color = "Focus") 
+  
+
+cumplot_1 <- cumplot_1 + theme(legend.position = "bottom", 
+                               panel.grid.major = element_blank(), 
+                               panel.grid.minor = element_blank(), 
+                               axis.text = element_text(size = 12), 
+                               axis.title = element_text(size = 12), 
+                               axis.title.y = element_text(margin = margin(0,15,0,0)), 
+                               plot.margin = unit(c(1,1,1,1), "cm")) +
+  guides(colour = guide_legend(override.aes = list(size = 3), nrow = 1))
+
 
 print(cumplot_1)
-      
-    
+
 ggsave("cumplot_1.tiff",
        plot = cumplot_1,
        width = 28,
@@ -1009,27 +1052,17 @@ marker_cum <-  data %>%
   arrange(Year) %>%
   mutate(cumulative_count = row_number())
 
-marker_cum <- marker_cum %>%
-  filter(!Markers %in% c("AFLP", "RFLP")) %>%
-  droplevels()
-
-table(marker_cum$Markers)
-
-
-palette_sa <- c ("skyblue", "orange")
-marker_cum$Markers <- factor(marker_cum$Markers, levels = c("RFLP", "AFLP", "mSat", "SNP"))
-
 cumplot_2 <- ggline(data = marker_cum, 
                     x = "Year",
                     y = "cumulative_count",
                     color = "Markers",
                     group = "Markers", 
                     plot_type = "l", 
-                    palette = palette_sa,
+                    palette = c("grey", "orange"),
                     size = 1,
                     ggtheme = theme_bw()) +
   labs(
-    x = "Year",
+    x = "",
     y = "Number of studies",
     color = "Marker") 
 
@@ -1037,7 +1070,7 @@ cumplot_2 <- ggline(data = marker_cum,
 cumplot_2 <- cumplot_2 + theme(legend.position = "bottom", 
                                panel.grid.major = element_blank(), 
                                panel.grid.minor = element_blank(), 
-                               axis.text = element_text(size = 10), 
+                               axis.text = element_text(size = 12), 
                                axis.title = element_text(size = 12), 
                                axis.title.y = element_text(margin = margin(0,15,0,0)), 
                                plot.margin = unit(c(1,1,1,1), "cm")) +
@@ -1086,7 +1119,7 @@ focus_simple_plot <- ggbarplot(data = focus_simple,
               x = "Focus", 
               y = "n", 
           fill = "Focus", 
-          palette = palette_focus, 
+          palette = "Spectral", 
           ylab = "Number of studies",
           ggtheme = theme_bw()) 
 
@@ -1098,8 +1131,6 @@ focus_simple_plot <- focus_simple_plot + theme(legend.position = "bottom",
                           axis.title.y = element_text(margin = margin(0,15,0,0)), 
                           plot.margin = unit(c(1,1,1,1), "cm")) +
   guides(fill = F)
-
-print(focus_simple_plot)
 
 ggsave("focus_all.tiff",
        plot = focus_simple_plot,
@@ -1300,143 +1331,3 @@ ggsave("supps_snps.tiff",
        dpi = 1000
 )
 
-##--------------------------------------------------------------------
-
-
-data_2 <- read.csv("relatedness_literature_review_working3.csv", stringsAsFactors = T)
-
-
-## Barplot where year (axis) is used to show no. studies (y axis) factted by research cateogry
-data_2 <- data_2 %>%
-  mutate(new_bin = cut(Year, breaks = seq(2000, 2025, by = 5),  # Adjust to your bin size
-                       labels = c("2001-2005", "2006-2010", "2011-2015", "2016-2020", "2021-2025")))
-
-df <- data_2 %>%
-  group_by(Markers, Focus, new_bin)%>%
-  count(Markers)
-
-df$Focus <- recode_factor(df$Focus, "Popgen" = "Population Genetics", "Social" = "Social Behaviour", "Reproduction" = "Reproductive Behaviour")
-
-df$Focus <- factor(df$Focus, levels = c("Reproductive Behaviour", "Population Genetics", "Demography", "Social Behaviour"))
-
-df$Markers <- factor(df$Markers, levels = c("RFLP", "AFLP", "mSat", "SNP"))
-
-palette_sa <- palette_sa <- c ("grey","yellow2", "skyblue","orange")
-
-ggbar1 <- ggplot(df, aes(x = new_bin, y = n, fill = Markers)) +
-                   annotate(geom = "rect",
-                             xmin = "2011-2015", xmax = Inf,
-                             ymin = -Inf, ymax = Inf,
-                             fill = "#E5E5E5") +
-  
-  xlab("Year") +
-  ylab("Number of studies") +
-  geom_vline(xintercept = "2011-2015", color = "black", linetype = "dashed") +
-                   geom_bar(stat = "identity", colour = "black", width = 0.8, position = position_dodge(preserve = "single", width = 0.9))+
-                   facet_wrap(~Focus) +
-                   scale_fill_manual(values = palette_sa) +
-                   theme_bw()
-  
-  
-
-ggbar1 <- ggbar1 +
-  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 0.95),
-        legend.position = "none", 
-        panel.grid.major = element_blank(),
-        panel.grid.minor = element_blank(),
-        axis.text = element_text(size = 11), 
-        axis.title = element_text(size = 11),
-        axis.title.y = element_text(margin = margin(0,15,0,0)), 
-        plot.margin = unit(c(1,1,1,1), "cm"), 
-        strip.text = element_text(size = 11))
-
-print(ggbar1)
-
-ggsave("temoral_markers.png",
-       plot = ggbar1,
-       width = 28,
-       height = 25,
-       units = "cm", 
-       path = "C:/Users/samue/Desktop/Honours/Chapter_1_lit_review/New_Plots", 
-       dpi = 2000
-)
-
-##------------------------------------------------------------------------------
-
-data_2 <- read.csv("relatedness_literature_review_working3.csv", stringsAsFactors = T)
-data_2$Method_PedvsMark
-
-df <- data_2 %>%
-  dplyr::group_by(Method_PedvsMark, Focus)%>%
-  count(Method_PedvsMark)
-
-
-df$Method_PedvsMark <- as.character(df$Method_PedvsMark)
-df$Focus <- as.character(df$Focus)
-
-
-df
-## Seperate the values and get counts by Focus for each type but need to combine mutliples of same estomator type
-
-df_2 <- df %>%
-  mutate(Method_PedvsMark = strsplit(Method_PedvsMark, " \\+ ")) %>% # Split the combinations
-  unnest(Method_PedvsMark) %>%
-  select(Method_PedvsMark, n, Focus)
-
-## Merge the same estimator types using the group_by function...then sum the n column for these rows to get the total count for each estimator type, in each research category.
-
-df_3 <- df_2 %>%
-  group_by(Method_PedvsMark, Focus) %>%
-  summarise(Total_Frequency = sum(n, na.rm = TRUE), .groups = "drop")
-
-head(df_3)
-
-
-# Extract unique items
-unique_items <- unique(unlist(strsplit(paste(df$Method_PedvsMark, collapse = " + "), " \\+ ")))
-
-unique_items
-
-
-df_3$Focus <- recode_factor(df_3$Focus, "Popgen" = "Population Genetics", "Social" = "Social Behaviour", "Reproduction" = "Reproductive Behaviour")
-
-df_3$Focus <- factor(df_3$Focus, levels = c("Reproductive Behaviour", "Population Genetics", "Demography", "Social Behaviour"))
-
-df_3
-
-palette_sa <- c ("grey","orange", "skyblue")
-
-ggbar1 <- ggplot(df_3, aes(x = Method_PedvsMark, 
-                           y = Total_Frequency, 
-                           fill = Method_PedvsMark)) +
-  geom_bar(stat = "identity", 
-           colour = "black", 
-           width = 0.8, 
-           position = position_dodge(preserve = "single", width = 0.9)) +
-  xlab("Estimator Type") +
-  ylab("Frequency") +
-  facet_wrap(~Focus) +
-  scale_fill_manual(values = c("#dc267f","#785ef0")) +
-  theme_bw()
-
-ggbar1 <- ggbar1 +
-  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 0.95),
-        legend.position = "none",
-        panel.grid.major = element_blank(),
-        panel.grid.minor = element_blank(),
-        axis.text = element_text(size = 11), 
-        axis.title = element_text(size = 11),
-        axis.title.y = element_text(margin = margin(0,15,0,0)), 
-        plot.margin = unit(c(1,1,1,1), "cm"), 
-        strip.text = element_text(size = 11))
-
-print(ggbar1)
-
-ggsave("Est_Type.png",
-       plot = ggbar1,
-       width = 28,
-       height = 25,
-       units = "cm", 
-       path = "C:/Users/samue/Desktop/Honours/Chapter_1_lit_review/New_Plots", 
-       dpi = 2000
-)

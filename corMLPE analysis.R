@@ -1,5 +1,4 @@
-# some codes for corMLPE, MK 23 July 2024
-#---------------------------------------------
+#### Install Packages ####
 
 # https://github.com/nspope/corMLPE 
  devtools::install_github("nspope/corMLPE")
@@ -14,10 +13,9 @@ install.packages("emmeans")
 install.packages("MuMIn")
 install.packages("rcompanion")
 install.packages("ggsignif")
+install.packages("glmmTMB")
 
-## --- START HERE PEOPLES --- ##
-
-setwd("C:/Users/samue/Desktop/Honours/analysis")
+#### Load Packages ####
 
 library(nlme)
 library(corMLPE)
@@ -31,10 +29,16 @@ library(lme4)
 library(MuMIn)
 library(rcompanion)
 library(ggsignif)
+library(glmmTMB)
 
-## --- NOW WE HAVE EVERYTHING LOADED --- ##
+#### Set WD and load data ####
+
+setwd("C:/Users/samue/Desktop/Honours/analysis")
 
 data <- read.csv("corMLPE_data.csv", stringsAsFactors=TRUE)
+
+#### Clean data ####
+
 names(data)
 summary(data)
 
@@ -65,6 +69,7 @@ data2$billabong_both <- recode_factor(data2$billabong_both, "Bend:Bank" = "RIV:D
  
 levels(data2$billabong_both)
 
+#### EDA ####
 ## Remove the comparisons between individuals with no date of capture...
 
 data2 <- data2[-c(1:55),] ## only use for some models 
@@ -88,9 +93,6 @@ ggplot(data = data2, aes(x = catch_set_diff, y = relatedness)) +
   geom_jitter( size = 3, aes(colour = billabong_diff), width = 0.2, alpha = 0.7)+
   theme_classic()
 
-## doesnt look like there's much going on here...
-
-# do some exploratory plots first ..----
 #... i.e. scatter plots e.g. to explore trends btw genetic & geogr.dist - is it linear?
 
 # also check out distribution of genetic distance - approx. normal or strongly skewed?
@@ -117,8 +119,7 @@ ggplot(data = data2, aes(x = year_caught_diff, y = log_GenD)) +
 hist(scale(data2$geogr_dist))
 hist(data2$geogr_dist)
 
-# corMLPE models --------------
-
+#### Run Models ####
 
 ## log()
 m1 <- gls(log(relatedness + 0.001) ~ year_caught_diff, 
@@ -173,9 +174,18 @@ m8 <- gls(log(relatedness+0.001) ~ year_caught_both,
           method = "REML", 
           control = list(singular.ok = T))
 
+m7_tweedie <- glmmTMB(log(relatedness + 0.001) ~ billabong_both + (1 | ID1) + (1 | ID2),
+                      data = data2,
+                      family = tweedie(link = "log"), 
+                      control = glmmTMBControl(optimizer = "bobyqa", 
+                                               optArgs = list(maxfun = 1e5)))
+
+
+summary(m7_tweedie)
 # include year e.g. as random effect if many levels -...
 #.... change model to lme() i.e. mixed effect model
 
+#### Check Models ####
 tab <- AICctab(m1, m2, m3, m4, m5, m6, m7, m8, weights=TRUE)
 
 tab
