@@ -45,6 +45,7 @@ library(ggplot2)
 library(devEMF)
 library(MuMIn)  # For standard error
 library(jtools)
+library(CKMRsim)
 
 
 #### Load data ####
@@ -395,7 +396,16 @@ m6_pois <- glm(pristis_abund ~ ami_standardised,
                 data = df, 
                 family = "poisson")
 
-m6_negbin <- glm.nb(pristis_abund ~ ami_standardised, df)
+m6_negbin <- glm.nb(pristis_abund ~ ami_standardised,
+                    df)
+
+require(pscl)
+require(MASS)
+require(boot)
+
+Z_inf <- zeroinfl(pristis_abund ~ ami_standardised,
+                  data = df, 
+                  dist = "negbin")
 
 summary(m6_negbin)
 
@@ -411,9 +421,13 @@ ggplot(df, aes(x = pristis_abund)) +
   geom_histogram(binwidth = 10)
 
 
+## Zero inflated works best 
+
+confint(Z_inf)
+summary(Z_inf)
 ### AICc
 
-AICctab(m1_abund, m2_abund, m3_abund, m4_abund, m5_abund, m6_abund, m7_abund, m8_abund, m9_abund,m10_ab,m6_pois, m6_negbin, sort=T, base=T, weights=TRUE)
+AICctab(m1_abund, m2_abund, m3_abund, m4_abund, m5_abund, m6_abund, m7_abund, m8_abund, m9_abund,m10_ab,m6_pois, m6_negbin,Z_inf, sort=T, base=T, weights=TRUE)
 
 summary(m10_ab)
 confint(m10_ab)
@@ -483,6 +497,100 @@ ggplot(df, aes(x = predicted, y = residuals(m6_negbin), type = "pearson")) +
   labs(x = "Predicted values", y = "Pearson Residuals", title = "Residual Plot for NB Model") +
   theme_minimal()
 
+#### Zero Inflated ####
+
+new_data <- data.frame(ami_standardised = seq(min(df$ami_standardised), 
+                                              max(df$ami_standardised), length.out = 100))
+
+# Get predicted counts from the count model (non-zero)
+new_data$predicted_count <- predict(Z_inf, new_data, type = "response")
+
+ggplot(df, aes(x = ami_standardised, y = pristis_abund)) +
+  geom_point(alpha = 0.5) +  # Raw data points
+  geom_line(data = new_data, aes(y = predicted_count), color = "blue", size = 1) +
+  labs(x = "AMI Standardised", y = "Predicted Pristis Abundance",
+       title = "Predicted Pristis Abundance vs. AMI Standardised") +
+  theme_bw()
+
+# Get predicted probabilities of being a zero
+new_data$predicted_zero <- predict(Z_inf, new_data, type = "zero")
+
+ggplot(new_data, aes(x = ami_standardised, y = predicted_zero)) +
+  geom_line(color = "red", size = 1) +
+  labs(x = "AMI Standardised", y = "Probability of Excess Zeros",
+       title = "Zero-Inflation Probability vs. AMI Standardised") +
+  theme_minimal()
+
+## 
+
+new_data <- data.frame(ami_standardised = seq(min(df$ami_standardised), 
+                                              max(df$ami_standardised), length.out = 100))
+
+# Get model matrix for the count model
+X_count <- model.matrix(~ ami_standardised, data = new_data)
+
+# Extract coefficients for the count model
+coef_count <- coef(Z_inf)[1:length(coef(Z_inf, model = "count"))]  # Ensure we only grab the count model coefficients
+
+# Extract variance-covariance matrix for the count model
+vcov_Z_inf <- vcov(Z_inf)  # Full variance-covariance matrix
+vcov_count <- vcov_Z_inf[names(coef_count), names(coef_count), drop = FALSE]  # Select only count model elements
+
+# Predict on the link scale (log-scale since log link is used)
+log_fit <- X_count %*% coef_count
+log_se <- sqrt(diag(X_count %*% vcov_count %*% t(X_count)))
+
+# Convert to response scale
+new_data$predicted_count <- exp(log_fit)
+new_data$lower_CI <- exp(log_fit - 1.96 * log_se)
+new_data$upper_CI <- exp(log_fit + 1.96 * log_se)
+
+new_data
+
+# Extract key model results
+intercept <- round(coef(Z_inf)["(Intercept)"], 2)
+slope <- round(coef(Z_inf)["ami_standardised"], 2)
+theta <- round(Z_inf$theta, 2)
+p_value_slope <- round(summary(Z_inf)$coefficients$count["ami_standardised", "Pr(>|z|)"], 3)
+p_value_zero <- round(summary(Z_inf)$coefficients$zero["ami_standardised", "Pr(>|z|)"], 3)
+
+p_value_slope
+p_value_
+
+coef(Z_inf)
+
+
+z_inflate_plot <- ggplot() +
+  geom_point(data = df, aes(x = ami_standardised, y = pristis_abund, fill = pristis_abund),shape = 21,colour = "black", size = 5) +  # Observed points
+  geom_line(data = new_data, aes(x = ami_standardised, y = predicted_count), 
+            color = "black", size = 1) +  # Model predictions
+  geom_ribbon(data = new_data, aes(x = ami_standardised, ymin = lower_CI, ymax = upper_CI), 
+              alpha = 0.2, fill = "grey") +  # Confidence interval
+  labs(x = "AMI Standardised", y = "Pristis Abundance") +
+  scale_fill_gradient(low = "darkgrey", high = "darkolivegreen2") + 
+  labs(fill = "Pristis Presence") +
+  theme_bw() +
+  theme(legend.position = "none", 
+        axis.text = element_text(size = 15),
+        axis.title.x = element_text(margin = margin(t = 15), size = 15),  
+        axis.title.y = element_text(margin = margin(r = 15)), size = 15)
+
+z_inflate_plot <- z_inflate_plot + 
+  annotate("text", x = -0.11, y = 69, 
+           label = paste0("Intercept: 2.76"), hjust = 1, size = 4) +
+  annotate("text", x = -0.11, y = 67, 
+           label = paste0("Slope: 2.83 (p = ", p_value_slope, "*)"), hjust = 1, size = 4) +
+  annotate("text", -0.11, y = 65, 
+           label = paste0("Zero-inflation p: 0.06"), hjust = 1, size = 4) +
+  annotate("text", -0.11, y = 63, 
+           label = paste0("Theta: ", theta), hjust = 1, size = 4)
+
+print(z_inflate_plot)
+
+emf("C:/Users/samue/Desktop/Honours/Daly_ENV/z_inf_abundance.emf", width = 10, height = 8)  # Set the width and height in inches
+print(z_inflate_plot)
+dev.off()
+
 #### PLOT the data ####
 
 box_plot <- ggplot(df, aes(x = as.factor(pristis_presence), y = average_river_level, fill = as.factor(pristis_presence))) +
@@ -495,7 +603,7 @@ box_plot <- ggplot(df, aes(x = as.factor(pristis_presence), y = average_river_le
         legend.title = element_blank(),
         axis.text = element_text(size = 12),
         axis.title.x = element_text(margin = margin(t = 15), size = 12),  
-        axis.title.y = element_text(margin = margin(r = 15)), size = 21)
+        axis.title.y = element_text(margin = margin(r = 15)), size = 12)
 
 
 print(box_plot)
@@ -520,4 +628,48 @@ citation(package = "lsmeans")
 citation(package = "ggpubr")
 citation(package = "dplyr")
 citation(package = "caret")
+citation(package = "CKMRsim")
+
+
+#### Visualising predictors #### 
+
+glimpse(pristis)
+
+wet_season_labs <- c("Season_2023_2024" = "2023/2024",
+                     "Season_2022_2023" = "2023/2024", 
+                     "Season_2021_2022" = "2021/2022", 
+                     "Season_2020_2021" = "2020/2021", 
+                     "Season_2019_2020" = "2019/2020", 
+                     "Season_2018_2019" = "2018/2019",
+                     "Season_2017_2018" = "2017/2018", 
+                     "Season_2016_2017" = "2016/2017",
+                     "Season_2015_2016" = "2015/2016",
+                     "Season_2014_2015" = "2014/2015", 
+                     "Season_2013_2014" = "2013/2014", 
+                     "Season_2012_2013" = "2012/2013",
+                     "Season_2011_2012" = "2011/2012")
+
+pristis$pristis_presence <- as.factor(pristis$pristis_presence)
+
+ami_bar <- ggplot(pristis, aes(x = Wet_Season, y = ami_standardised
+                    , fill = pristis_presence)) +
+  geom_bar(stat = "identity", colour = "black") +
+  scale_fill_manual(values = c("grey", "darkolivegreen3"), 
+                    labels = c("0" = "No", "1" = "Yes")) +
+  coord_flip()+
+  theme_bw() +
+  scale_x_discrete(labels = c(wet_season_labs)) +
+  ylab("AMI Standardised") +
+  xlab("Wet Season") +
+  labs(fill = "Pristis Presence") +
+  theme(legend.position = c(0.95, 0.2), 
+        legend.justification = c("right", "top"),
+        legend.box.just = "right",
+        legend.margin = margin(6, 6, 6, 6))
+
+print(ami_bar)
+
+emf("C:/Users/samue/Desktop/Honours/Daly_ENV/ami_barplot.emf", width = 10, height = 8)  # Set the width and height in inches
+print(ami_bar)
+dev.off()
 

@@ -174,3 +174,33 @@ RMSE_all <- rbind(rmse_em1, rmse_em2, rmse_LyRd, rmse_Qgt, rmse_rit, rmse_trioml
 RMSE_all <- data.frame(RMSE_all[order(RMSE_all), ])
 
 colnames(RMSE_all) <- c("RMSE"); RMSE_all
+
+
+#### EMIBD Em2 estimated #### 
+
+glimpse(sims_df)
+
+FS <- sims_df %>%
+  filter(Sibtype == "FSP", Estimator == "TrioML") %>%
+  select(rel) %>%
+  droplevels()
+
+
+HS <- sims_df %>%
+  filter(Sibtype == "HSP", Estimator == "TrioML") %>%
+  select(rel) %>%
+  droplevels()
+
+
+# Compute 95% confidence interval
+ci_FS <- quantile(FS$rel, probs = c(0.01, 0.99))
+ci_HS <- quantile(HS$rel, probs = c(0.01, 0.99))
+# Print results
+print(ci_FS)
+print(ci_HS)
+
+# Estimate density functions
+# Find the minimum FS value that doesn't overlap with HS
+threshold <- (max(HS$rel) + min(FS$rel)) / 2
+
+print(threshold)

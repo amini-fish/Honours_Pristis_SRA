@@ -92,8 +92,36 @@ ggplot(df, aes(x = reorder(sibtype, -rel), y = rel, fill = sibtype))+
   geom_boxplot()+
   theme_bw()
 
+##
 
-## Plot the simulated values where each dyad has #1000 inds
+# Define function for confidence interval
+
+# Compute 95% confidence interval
+ci_full_sib <- quantile(FS$rel, probs = c(0.025, 0.975))
+
+print(ci_full_sib)
+
+threshold_full_sib <- min(FS$rel[FS$rel > max(HS$rel)])
+
+print(threshold_full_sib)
+
+# Print results
+print(ci_full_sib)
+
+dens_full <- density(FS$rel)
+dens_half <- density(HS$rel)
+
+# Compute probability that a given relatedness value (e.g., R = 0.4) is from a full sibling
+R_value <- 0.4
+p_full <- approx(dens_full$x, dens_full$y, xout = R_value)$y
+p_half <- approx(dens_half$x, dens_half$y, xout = R_value)$y
+
+# Compute probability that R is from a full sibling
+prob_full_given_R <- p_full / (p_full + p_half)
+
+print(prob_full_given_R)
+
+###
 
 simplot <- ggplot(df, aes(x = rel, fill = sibtype)) +
   geom_density(alpha = 0.5, position = "identity")+

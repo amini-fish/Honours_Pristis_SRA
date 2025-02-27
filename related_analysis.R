@@ -24,28 +24,17 @@ library(related)
 gl <- get(load("C:/Users/samue/Desktop/Honours/analysis/daly_geno_clean.Rdata")); gl
 
 
-geno <- gl2related(gl, 
-                   outfile = "related.txt", 
-                   outpath = "C:/Users/samue/Desktop/Honours/analysis",
-                   v = 5)
+input <- dartR.base::gl2related(gl, save = F)
 
 #---Calculate Relatedness---#
 
-GenotypeData
-
-output <- coancestry(genotype.data = input$gdata, 
-                     trioml = 2,
+output <- coancestry(genotype.data = input, 
+                     trioml = 1,
                      allow.inbreeding = T,
-                     ci95.num.bootstrap = 10000,
                      rng.seed = 42)
 
 #---View Point Estimates---#
 output$relatedness
-
-#---View 95
-output$relatedness.ci95
-
-output$delta7
 
 ## End(Not run)	
 
@@ -53,34 +42,23 @@ output$delta7
 
 trioML <- data.frame(output$relatedness[, c(2,3,5)])
 
-
 mean <- mean(trioML$trioml)
 sd <- sd(trioML$trioml)
 
 mean
 sd
 
-freqs <- input$freqs
 
-simfreqs <- sample(freqs, 100, replace=F)
-View(simfreqs)
+## Simulate 95% CI for relatives from file - relatedness_simulations.R  
 
-View(input)
-### Simulate relatedness values ### 
-sim <- familysim(simfreqs, 100)
-sim$ID
-
-compare <- sample(input, 100, replace = T)
-
-compareestimators(compare, 200)
-
-input
+print(ci_FS)
+print(ci_HS)
 
 ## Extract the indiviudals with relatedness above x and y -  need to find a solid guideline for this assignment not arbitrary numbers.
 
-pull.kin <- ifelse(trioML$trioml >= 0.15 & trioML$trioml <= 0.25, 
+pull.kin <- ifelse(trioML$trioml >= 0.211495 & trioML$trioml <= 0.279125, 
                yes = "hsp", 
-               no = ifelse(trioML$trioml >=0.35 & trioML$trioml <= 0.55, 
+               no = ifelse(trioML$trioml >=0.4574700  & trioML$trioml <= 0.5203725, 
                            yes = "fsp",
                            "unelated"))
 
