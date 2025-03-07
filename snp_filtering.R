@@ -32,7 +32,7 @@ gl.smearplot(data.gl)
 
 data.gl <- gl.keep.pop(data.gl, pop.list = "Daly")
 
-
+data.gl <- gl.filter.monomorphs(data.gl, v = 5)
 ## Save unfiltered data 
 
 #save(data.gl, file = "pristis_geno_raw.RData") 
@@ -61,7 +61,7 @@ data.gl <- dartR.base::gl.filter.rdepth(data.gl, lower = 10, upper = 75)
 
 ## Remove secondary loci - important to keep unlinked loci
 
-data.gl <- dartR.base::gl.filter.secondaries(data.gl) 
+data.gl <- dartR.base::gl.filter.secondaries(data.gl, method = "best") 
  
 #Very low filter – this is only to get rid of your really bad individuals
 
@@ -74,6 +74,8 @@ data.gl <- dartR.base::gl.filter.callrate(data.gl, method = "ind", threshold = 0
 data.gl <- dartR.base::gl.filter.hwe(data.gl)
 
 data.gl
+
+data.gl <- gl.filter.maf(data.gl, t = 0.05, v = 5)
 
 data.gl <- dartR.base::gl.filter.monomorphs(data.gl)
 
@@ -93,6 +95,9 @@ data.gl <- gl.filter.allna(data.gl)
 
 data.gl <- gl.filter.monomorphs(data.gl)
 
+
+gl.report.ld(data.gl, probar = T, nchunks = 8)
+
 ### SAVE DALY RIVER INDS ###
 
 
@@ -100,7 +105,6 @@ save(data.gl, file = "daly_geno_clean.Rdata")
 
 ## LD??
 
-gl.report.ld(Daly.gl, probar = T, nchunks = 8)
 
 
 ### Check our filtering steps ###

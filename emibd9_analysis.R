@@ -1,7 +1,7 @@
 
 setwd("C:/Users/samue/Desktop/Honours/analysis")
 
-### LOAD REQUIRED PACKAGES ###
+#### LOAD REQUIRED PACKAGES ####
 install.packages("dartRverse")
 
 install.packages("ggplot2")
@@ -27,6 +27,8 @@ if (!require("BiocManager", quietly = TRUE))
 BiocManager::install("SNPRelate")
 
 devtools::install_github("green-striped-gecko/dartR.captive@dev")
+
+#### Load Packages ####
 
 library(SNPRelate)
 library(dartRverse)
@@ -90,9 +92,8 @@ med #0.0052
 ### PLOT THE RAW RESULTS
 
 rel.hist <- ggplot(data = emibd.rel, aes(x = as.numeric(value))) +
-  geom_histogram(bins = 200, col = I("black")) +
-  ggtitle("Histogram of Cancestry Coefficients for all pairwise comparisons") +
-  xlab("Kinship (θ)") +
+  geom_histogram(bins = 100, col = I("black")) +
+  xlab("Relatedness") +
   ylab("Count") +
   theme_bw()
 
@@ -110,9 +111,11 @@ rel.hist <- rel.hist +
   scale_x_continuous(n.breaks = 12) +
   scale_y_continuous(n.breaks = 10) 
   
-
-dev.off()
 print(rel.hist)
+
+emf("C:/Users/samue/Desktop/Honours/EMIBD9_Histogram.emf", width = 10, height = 8)  # Set the width and height in inches
+print(rel.hist)
+dev.off()
 
 
 ################################################################################
@@ -261,9 +264,14 @@ kin_network1 <- ggraph::ggraph(network, layout = layout) +
   ggraph::geom_node_text( aes(label = df$id), repel = TRUE, 
                           size = 5, color = "black") +
   ggplot2::scale_color_manual(values = adegenet::funky(9), na.value = "grey50") +
-  ggplot2::theme_void() +
-  ggplot2::ggtitle("Sibling Groups from Pilot Study Data")+
+  labs(shape = "Sex") +
+  ggplot2::theme_bw() +
+  guides(edge_width = "none") +
   ggplot2::theme(
+    panel.grid = element_blank(), 
+    axis.text = element_blank(), 
+    axis.title = element_blank(), 
+    axis.ticks = element_blank(),
     plot.title = element_text(hjust = 0.5, size = 15),
     legend.position = "right",
     plot.margin = unit(rep(1,5), "cm"), 
@@ -272,11 +280,16 @@ kin_network1 <- ggraph::ggraph(network, layout = layout) +
 
 print(kin_network1)
 
+## Save it as an EMF
 
-?gl.grm.network()
+emf("C:/Users/samue/Desktop/Honours/EMIBD9_Network.emf", width = 10, height = 8)  # Set the width and height in inches
+print(kin_network1)
+dev.off()
 
-glrm <- gl.grm.network(G = data.frame(daly.rel$raw), 
-                       x = gl)
+
+## k(k-1)/2
+(10/(29*(29-1)/2))*100
+
 
 ## Fucking around
 

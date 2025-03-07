@@ -39,13 +39,12 @@ library(splines)
 library(brglm2)
 library(brms)
 library(mclust)
-library(MASS)       # For glm.nb()
-library(ggeffects)  # For ggpredict()
+library(MASS)     
+library(ggeffects)
 library(ggplot2)
 library(devEMF)
-library(MuMIn)  # For standard error
+library(MuMIn)
 library(jtools)
-library(CKMRsim)
 
 
 #### Load data ####
@@ -673,3 +672,86 @@ emf("C:/Users/samue/Desktop/Honours/Daly_ENV/ami_barplot.emf", width = 10, heigh
 print(ami_bar)
 dev.off()
 
+
+
+#### Sawfish lenght & sex EDA ####
+
+library(forcats)
+library(dplyr)
+library(ggnewscale)
+
+
+setwd("C:/Users/samue/Desktop/Honours")
+
+sawfish_all <- read.csv("Kyne_Daly River Pristis pristis data_SamAminiHonours.csv")
+
+glimpse(sawfish_all)
+
+sawfish_all <- sawfish_all %>%
+  filter(Sawfish_rescue == "Yes")
+
+mean(sawfish_all$TL_mm, na.rm = T)
+sd(sawfish_all$TL_mm, na.rm = T)
+
+sawfish_all$Sex <- factor(sawfish_all$Sex, levels = c("Unknown", "M", "F"))
+
+table(sawfish_all$Sex)
+
+Lengths <- ggplot(sawfish_all, aes(x = TL_mm, y = ..density..)) +
+  geom_density(alpha = 0.9, fill = "grey", colour = "black") +
+  geom_histogram(binwidth = 20, alpha = 0.7, fill = "darkolivegreen3", colour = "black") + 
+  geom_vline(xintercept =  1121.229, linetype  = "dashed", linewidth = 1) +
+  theme_bw() +
+  theme(panel.grid =element_blank()) +
+  xlab("Total Length")+
+  ylab("Density")
+
+print(Lengths)
+
+emf("C:/Users/samue/Desktop/Honours/Length_Frequency.emf", width = 10, height = 8)  # Set the width and height in inches
+print(Lengths)
+dev.off()
+
+## Changes in sex proportion over time
+
+Sex_data <- sawfish_all %>%
+  group_by(Rescue_year, Sex) %>%
+  count(Sex)
+
+sawfish_all %>%
+  summarise(
+    male_count = sum(Sex == "M", na.rm = TRUE),
+    female_count = sum(Sex == "F", na.rm = TRUE),
+    sex_ratio = male_count / female_count
+  )
+  
+
+#position_dodge2(width = 0.9, preserve = "single")
+
+Sex <- ggplot(Sex_data) +
+  geom_bar(aes(y = n, x = as.factor(Rescue_year), fill = Sex), stat = "identity", position = "fill", colour = "black") +
+  scale_fill_manual(values = c("grey",   "darkolivegreen3", "orange")) +
+  theme_bw() +
+  theme(panel.grid =element_blank()) +
+  xlab("Rescue Year") + 
+  ylab("Proportion")
+
+print(Sex)
+
+emf("C:/Users/samue/Desktop/Honours/Sex.emf", width = 10, height = 8)  # Set the width and height in inches
+print(Sex)
+dev.off()
+
+
+## Hypothesis 3 - does wet season correlate to the total length of individuals? 
+
+ggplot() +
+  geom_boxplot(data = sawfish_all, aes(x = as.factor(Wet_Season), y = TL_mm, fill = Wet_Season)) +
+  theme_bw()
+
+ggplot() +
+  geom_point(data = sawfish_all, aes(x = ami_pres$ami_standardised, y = TL_mm)) +
+  theme_bw()
+
+ggplot(data = sawfish_all, aes(x = as.factor(Rescue_year), y = TL_mm, fill = ami_standardised)) +
+  geom_boxplot()
