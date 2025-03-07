@@ -1,31 +1,28 @@
-### This may be the solution to simulating expected relatedness vals between dyads whilst accounting for an incredibly low fPos level ###
-
-######################################
-##                                  ##      
-##        GO to line 126            ##
-##            dumbass               ##
-##                                  ##
-##                                  ##
-######################################
+#### Install packages ####
 
 install.packages("vcfR")
 
-#install.packages("remotes")
-#remotes::install_github("eriqande/CKMRsim")
+install.packages("remotes")
+remotes::install_github("eriqande/CKMRsim")
 
 if(system.file("bin", package = "CKMRsim") == "") {
   install_mendel(Dir = system.file(package = "CKMRsim"))
 }
 
+
+install_github("https://github.com/eriqande/CKMRsim/tree/master") 
+
+#### Load packages ####
+
+
 library(devtools)
-
-#install_github("https://github.com/eriqande/CKMRsim/tree/master") 
-
+library(vcfR)
 library(CKMRsim)
 library(dartRverse)
 library(tidyverse)
+library(devEMF)
 
-#### Good to go ####
+#### Load the data ####
 
 setwd("C:/Users/samue/Desktop/Honours/analysis")
 
@@ -41,11 +38,7 @@ dim(data)
 
 data
 
-library(vcfR)
-
-
-## -----------------------------------------------------------------------------------------------------
-
+#### Prepare the data ####
 
 ## SKIP TO LINE 107 TO START ANALYSIS ## 
 
@@ -95,8 +88,6 @@ length(gl@ind.names)
 
 genotypes_3 <- genotypes_3[-1,]
 
-gen
-
 genotypes_3
 
 ind_names <- gl@ind.names
@@ -121,7 +112,7 @@ long_genos <- genotypes_3 %>%
 
 #write.csv(long_genos, file = "Pristis_genofor_CKMRsim.csv" )
 
-## START HERE ##
+#### START HERE - Long genos ####
 
 long_genos <- read.csv("Pristis_genofor_CKMRsim.csv"); long_genos
 
@@ -148,10 +139,9 @@ afreqs_ready <- long_genos %>%
 
 afreqs_ready 
 
-##----------------------------------------------------------------------------
+#### Create CKMR object ####
 
 ### Creating more dataframes for our analysis 
-?create_ckmr
 
 ckmr <- create_ckmr(
   D = afreqs_ready,
@@ -163,21 +153,19 @@ ckmr <- create_ckmr(
 )
 
 ckmr
-## -=-------------------------------------------------------------------------- 
 
-### Select the dyads the want to examine further 
-## In ths case it is only FS, HS, and FC
+#### Subset Kappas - IBD probs for desired relats ####
 
-kappas # there are just individual ibd probabilites for each state based on relationship 
+kappas # all possible
 
 kappas[c("FS", "HS", "HFC", "U"), ]
 
-##-------------------------------------------------------------------------------------------------------------------------
+#### Simulate dyads for each to approximate the LLRs and therefore the fpos/fneg ####
 
 ##  Gives us our true relatedness log likelihoods based on the assumption of no linkage 
 ##  Good filtering should minimise the effect - can't fully escape it with SNPs
 
-### OUR FPOS RATE 0.00002849002 i.e. 2.849 x 10-5
+### Desired fpos rate is 0.00002849002 i.e. 2.849 x 10-5
 
 Qs <- simulate_Qij(
   ckmr, 
@@ -185,12 +173,9 @@ Qs <- simulate_Qij(
   sim_relats = c("FS", "HS", "HFC", "U") 
 )
 
-
-
-##------------------------Linkage Model-----------------------------------##
+#### Linkage Model ####
 
 ## We will use our linkage model to calibrate our false negative values 
-
 ## Lets use Pristis pectinata genome as our model for linkage model
 
 n_chromosomes = 46 #chromosome number
@@ -212,6 +197,8 @@ set.seed(42)
 
 afreqs_link <- sprinkle_markers_into_genome(afreqs_ready, fake_chromo_lengths$chrom_lengths)
 
+## Our CKMR model that allows for some linkage in our data - i.e. more overlap between LLRs and more stringent kin-assignmnets
+
 ckmr_link <- create_ckmr(
   D = afreqs_link,
   kappa_matrix = kappas[c("FS", "HS", "HFC", "U"), ],
@@ -222,6 +209,7 @@ ckmr_link <- create_ckmr(
 )
 
 ## Simulate our linkage simulated true kinship values 
+## This may take some time as uses MENDEL outside of Rstudio...
 
 Qs_link_BIG <- simulate_Qij(
   ckmr_link, 
@@ -231,9 +219,9 @@ Qs_link_BIG <- simulate_Qij(
   pedigree_list = pedigrees
 )
 
-## ------------------------------------------------------------------------------
+#### Check the data for matching genotypes ####
 
-## Run the pairwise comparisons 
+# We allow for up to 500 matching loci here...
 
 matchers <- find_close_matching_genotypes(
   LG = long_genos,
@@ -241,19 +229,17 @@ matchers <- find_close_matching_genotypes(
   max_mismatch = 500
 )
 
-head(long_genos)
+matchers # have a geeze
 
-matchers
-
-## Run for all dyads 
+#### Run pairwsie estimates of LLRs for our empirical data #### 
 
 pw_4_LRTs <- lapply(
   X = list(
     FSU = c("FS", "U"),
     FSHS = c("FS", "HS"),
-    HSU = c("HS", "U"), 
-    HSFC = c("HS", "FC"), 
-    FCU = c("FC", "U")
+    HSHFC = c("HS", "HFC"), 
+    HSU = c("HS", "U"),
+    HFCU = c("HFC", "U")
   ),
   FUN = function(x) {
     pairwise_kin_logl_ratios(
@@ -273,27 +259,24 @@ pw_4_LRTs <- lapply(
 
 pw_4_LRTs
 
-## --------------------Full sib vs Unrelated ---------------------------------##
+##### Extract this for FSP/Unrelated ####
 
-FS_U_logls <- extract_logls(
-  Qs_link_BIG,
-  numer = c(FS = 1),
-  denom = c(U = 1)
+## Compute the thresholds we need using MCMC method
+
+FSU_thresholds <- mc_sample_simple(
+  Qs,
+  Q_for_fnrs = Qs_link_BIG,
+  nu = "FS", 
+  de = "U", 
+  method = "IS", 
+  FNRs = c(0.3, 0.2, 0.1, 0.05, 0.01, 0.001, 0.0001)
 )
 
-set.seed(54) # for the jittering
+print(FSU_thresholds)
 
-FS_U_gg + #or FS_U_link_gg
-  geom_jitter(
-    data = pw_4_LRTs,
-    mapping = aes(x = FSU, y = -0.002, colour = FSU > 190),
-    width = 0, 
-    height = 0.001, 
-    fill = NA,
-    shape = 21
-  )
+# What we need - FPR ~ Lamda* = 161
 
-## -------------------- Extract this for FSP/HS------------------------------##
+## Visualise the dist of LLRs for non and linked models
 
 FS_U_gg <- Qs %>%
   extract_logls(numer = c(FS = 1), denom = c(U = 1)) %>%
@@ -306,29 +289,60 @@ FS_U_gg
 FS_U_link_gg <- Qs_link_BIG %>% 
   extract_logls(numer = c(FS = 1), denom = c(U = 1)) %>%
   ggplot(aes(x = logl_ratio, fill = true_relat)) +
-  geom_density(alpha = 0.25) +
-  ggtitle("FSU/U Linkage Logl Ratio")
+  geom_density(alpha = 0.7) +
+  #ggtitle("FSU/U Linkage Logl Ratio") +
+  scale_fill_brewer(palette = "RdYlGn")
 
 FS_U_link_gg
 
-## First lets look at FULL SIB pairs 
-### Get our false positive and false negative rates to guide selection of T 
-FSU_thresholds <- mc_sample_simple(
-  Qs,
-  Q_for_fnrs = Qs_link_BIG,
-  nu = "FS", 
-  de = "U", 
-  method = "IS", 
-  FNRs = c(0.3, 0.2, 0.1, 0.05, 0.01, 0.001, 0.0001)
-)   
+FS_U_logls <- extract_logls(
+  Qs_link_BIG,
+  numer = c(FS = 1),
+  denom = c(U = 1)
+)
+
+set.seed(42) # for the jittering
+
+fs_fpos <- 3.49e-137
+fs_fneg <-  0.0001
+
+FSU_link_plot <- FS_U_link_gg + 
+  geom_jitter(
+    data = pw_4_LRTs,
+    mapping = aes(x =FSU, y = -0.002, colour = FSU > 161),
+    width = 0, 
+    height = 0.001, 
+    fill = NA,
+    shape = 21, 
+    size = 3
+  ) +
+  scale_fill_brewer(palette = "RdYlGn") +
+  scale_colour_manual(values = c("red", "black")) +
+  theme_bw() +
+  labs(fill = "True Relationship")+
+  annotate("text", 
+           x = 700,
+           y = 0.027,  
+           label = paste("FPR:", fs_fpos, "\nFNR:", fs_fneg), 
+           hjust = 0, 
+           size = 3, 
+           color = "black")+
+  xlab("Log Likelihood Ratio") +
+  ylab("Density")
+
+print(FSU_link_plot)
+
+emf("C:/Users/samue/Desktop/Honours/FS_UP_LLR_plot.emf", width = 10, height = 8) 
+print(FSU_link_plot)
+dev.off()
 
 write.csv(FSU_thresholds, "FSU_thresholds_linked.csv")
 
-## Lambda of 178 
+#### Extract Full Sibling Pairs #### 
 
 topFS_U <- pw_4_LRTs %>% # remove the PO pairs 
   arrange(desc(FSU)) %>%
-  filter(FSU > 166)
+  filter(FSU > 161)
 
 topFS_U
 
@@ -347,40 +361,14 @@ FS_U_link_gg +
     size = 2
   )
 
-##-------------------------Full sibs vs Half Sibs ---------------------------##
-
-#Unlinked 
-FS_HS_gg <- Qs %>%
-  extract_logls(numer = c(FS = 1), denom = c(HS = 1)) %>%
-  ggplot(aes(x = logl_ratio, fill = true_relat)) +
-  geom_density(alpha = 0.25) +
-  ggtitle("FS/HS Logl Ratio")
-
-FS_HS_gg
-
-
-FS_HS_logls <- extract_logls(
-  Qs,
-  numer = c(FS = 1),
-  denom = c(HS = 1)
-)
-
-### Get our false positive and false negative rates to guide selection of T 
-mc_sample_simple(
-  Qs,
-  nu = "FS", 
-  de = "HS", 
-  method = "IS", 
-  FNRs = c(0.3, 0.2, 0.1, 0.05, 0.01, 0.001)
-)
-
+#### Full sib Half sib ####
 
 #Linked
 FS_HS_linked_gg <- Qs_link_BIG %>%
   extract_logls(numer = c(FS = 1), denom = c(HS = 1)) %>%
   ggplot(aes(x = logl_ratio, fill = true_relat)) +
-  geom_density(alpha = 0.25) +
-  ggtitle("Linkage FS/HS Logl Ratio")
+  geom_density(alpha = 0.7) +
+  scale_fill_brewer(palette = "RdYlGn")
 
 FS_HS_linked_gg
 
@@ -390,7 +378,6 @@ FS_HS_linked_logls <- extract_logls(
   denom = c(HS = 1)
 )
 
-### Get our false positive and false negative rates to guide selection of T 
 FSHS_MCMC <- mc_sample_simple(
   Qs,
   Q_for_fnrs = Qs_link_BIG,
@@ -400,14 +387,13 @@ FSHS_MCMC <- mc_sample_simple(
   FNRs = c(0.3, 0.2, 0.1, 0.05, 0.01, 0.001)
 )
 
-write.csv(FSHS_MCMC, "FSHS_thresholds_linked.csv")
+print(FSHS_MCMC)
 
 #Quick visual inspection
 
-
 topFS_HS <- pw_4_LRTs %>% # remove the PO pairs 
   arrange(desc(FSHS)) %>%
-  filter(FSHS > 27.5) #83.6
+  filter(FSHS > -7.99)
 
 topFS_HS
 
@@ -416,15 +402,27 @@ topFS_HS$rel <- rep("full-sibs")
 
 set.seed(54) # for the jittering
 
-FS_HS_linked_gg +
+FSHS_plot <- FS_HS_linked_gg +
   geom_jitter(
     data = pw_4_LRTs,
-    mapping = aes(x = FSHS, y = -0.002, colour = FSHS > 27.5),
+    mapping = aes(x = FSHS, y = -0.002, colour = FSHS > -7.99),
     width = 0, 
-    height = 0.001, 
+    height = 0.001,
+    shape = 21, 
     fill = NA,
-    shape = 21
-  )
+    size = 4
+  ) +
+  scale_colour_manual(values = c("red", "black")) +
+  theme_bw() +
+  xlab("Log Likelihood Ratio") +
+  ylab("Density")+
+  labs(fill = "True Relationship")
+
+print(FSHS_plot)
+
+emf("C:/Users/samue/Desktop/Honours/FS_HS_LLR_plot.emf", width = 10, height = 8) 
+print(FSHS_plot)
+dev.off()
 
 ## So we have our FSPs but we need to keep going with the rest of the individuals 
 
@@ -433,7 +431,7 @@ remaining_pairs <- pw_4_LRTs %>%
 
 remaining_pairs # work from this now
 
-##------------------Half siblings and unrelated pairs--------------------------##
+#### Half sib Unrelated model ####
 
 HS_UP_gg <- Qs %>%
   extract_logls(numer = c(HS = 1), denom = c(U = 1)) %>%
@@ -476,12 +474,12 @@ HS_UP_gg +
     size = 3
   )
 
-## and with the linked model
+### What we really care about is Linked Model
+
 HS_UP_linked_gg <- Qs_link_BIG %>%
   extract_logls(numer = c(HS = 1), denom = c(U = 1)) %>%
   ggplot(aes(x = logl_ratio, fill = true_relat)) +
-  geom_density(alpha = 0.25) +
-  ggtitle("Linked HS / UP Logl Ratio")
+  geom_density(alpha = 0.7)
 
 HS_UP_linked_gg
 
@@ -498,66 +496,96 @@ HS_U_thresholds <- mc_sample_simple(
   nu = "HS", 
   de = "U", 
   method = "IS", 
-  FNRs = c(0.3, 0.2, 0.1, 0.05, 0.01, 0.001, 0.0001))
+  FNRs = c(0.3, 0.2, 0.1, 0.05, 0.01, 0.001, 0.0001)) 
 
-write.csv(HS_U_thresholds, "HSU_thresholds_linked.csv")
+print(HS_U_thresholds)
 
 top_HS_UP <- remaining_pairs %>% # remove the PO pairs 
   arrange(desc(HSU)) %>%
-  filter(HSU > 3.48)
+  filter(HSU > 12.3)
 
 topHS_UP
 
-HS_UP_linked_gg +
+HSU_fpos <- 1.40e-26
+HSU_fneg <- 0.0001 
+
+HSU_plot <- HS_UP_linked_gg +
   geom_jitter(
     data = remaining_pairs,
-    mapping = aes(x = HSU, y = -0.002, colour = HSU > 3.48),
+    mapping = aes(x = HSU, y = -0.002, colour = HSU > 12.3),
     width = 0, 
     height = 0.001, 
     fill = NA,
     shape = 21, 
     size = 3
-  )
+  ) +
+  scale_fill_brewer(palette = "RdYlGn") +
+  scale_colour_manual(values = c("red", "black")) +
+  theme_bw() +
+  labs(fill = "True Relationship")+
+  annotate("text", 
+           x = 400,
+           y = 0.027,  
+           label = paste("FPR:", HSU_fpos, "\nFNR:", HSU_fneg), 
+           hjust = 0, 
+           size = 3, 
+           color = "black")+
+  xlab("Log Likelihood Ratio") +
+  ylab("Density")
+
+plot(HSU_plot)
+
+emf("C:/Users/samue/Desktop/Honours/HSU_LLR_plot.emf", width = 10, height = 8)  # Set the width and height in inches
+print(HSU_plot)
+dev.off()
+
+remaining_pairs <- remaining_pairs %>%
+  anti_join(bind_rows(topHS_UP), by = c("D2_indiv", "D1_indiv"))
+
+### Move on to Half Sib to Half-first cousins ####
 
 ## Super interesting that our linkage model finds the same pairs as EMIBD9 but when unliked it doesn't and makes the dyads all cousins instead
 
-## -----------------Half siblings and first cousins ---------------------------##
-
-HS_FC_gg <- Qs %>%
-  extract_logls(numer = c(HS = 1), denom = c(FC = 1)) %>%
+HS_HFC_gg <- Qs %>%
+  extract_logls(numer = c(HS = 1), denom = c(HFC = 1)) %>%
   ggplot(aes(x = logl_ratio, fill = true_relat)) +
   geom_density(alpha = 0.25) +
   ggtitle("HS / FC Logl Ratio")
 
-HS_FC_gg
+HS_HFC_gg
 
-HS_FC_logls <- extract_logls(
+HS_HFC_logls <- extract_logls(
   Qs,
   numer = c(HS = 1),
-  denom = c(FC = 1)
+  denom = c(HFC = 1)
 )
 
 ### Get our false positive and false negative rates to guide selection of T 
+
 mc_sample_simple(
   Qs,
   nu = "HS", 
-  de = "FC", 
+  de = "HFC", 
   method = "IS", 
   FNRs = c(0.3, 0.2, 0.1, 0.05, 0.01, 0.001, 0.0001)
 )
 
 #Quick visual inspection
-topHS_FC <- remaining_pairs %>% # remove the PO pairs 
-  arrange(desc(HSFC)) %>%
-  filter(HSFC > 1.10)
 
+glimpse(remaining_pairs)
+
+topHS_HFC <- remaining_pairs %>% # remove the PO pairs 
+  arrange(desc(HSHFC)) %>%
+  filter(HSHFC > 19.9)
+
+topHS_HFC
 
 set.seed(54) # for the jittering
 
-HS_FC_gg +
+HS_HFC_gg +
   geom_jitter(
     data = remaining_pairs,
-    mapping = aes(x = HSFC, y = -0.002, colour = HSFC > 1.10),
+    mapping = aes(x = HSHFC, y = -0.002, colour = HSHFC > 1.10),
     width = 0, 
     height = 0.001, 
     fill = NA,
@@ -566,7 +594,6 @@ HS_FC_gg +
   )
 
 
-### Now we simulate for linkage -------------------------------------------------
 
 HS_FC_linked_gg <- Qs_link_BIG %>%
   extract_logls(numer = c(HS = 1), denom = c(FC = 1)) %>%
@@ -619,86 +646,104 @@ topHS_FC$rel <- rep("half-sib")
 remaining_pairs_2 <- remaining_pairs %>%
   anti_join(bind_rows(topFS_HS, topHS_FC), by = c("D2_indiv", "D1_indiv"))
 
-##---------------------First Cousins vs Unrelated -----------------------------##
+#### HFC and Unrelated ####
 
-all_FCUlogl <- ggplot(remaining_pairs_2, aes(x = FCU)) + 
+HFCU_llr <- ggplot(remaining_pairs, aes(x = HFCU)) + 
   geom_histogram(bins = 30)
 
-all_FCUlogl
+HFCU_llr
 
-all_FCU_logsl +
-  xlim(-70, NA) +
+HFCU_llr +
+  xlim(0, NA) +
   ggtitle("Pairs with First COusins > -70")
 
 set.seed(52)
 
-FC_U_gg <- Qs %>%
-  extract_logls(numer = c(FC = 1), denom = c(U = 1)) %>%
-  ggplot(aes(x = logl_ratio, fill = true_relat)) +
-  geom_density(alpha = 0.25) +
-  ggtitle("FC/UP Logl Ratio")
+## Get Lamda and thresholds 
 
 mc_sample_simple(
   Qs,
   Q_for_fnrs = Qs_link_BIG,
-  nu = "FC", 
+  nu = "HFC", 
   de = "U", 
   method = "IS", 
-  FNRs = c(0.3, 0.2, 0.1, 0.05, 0.01, 0.001, 0.0001)
-)
+  FNRs = c(0.3, 0.2, 0.1, 0.05, 0.01, 0.001, 0.0001, 0.5))
 
+## Visualise LLRs
 
-FC_U_gg + 
+HFC_U_gg <- Qs %>%
+  extract_logls(numer = c(HFC = 1), denom = c(U = 1)) %>%
+  ggplot(aes(x = logl_ratio, fill = true_relat)) +
+  geom_density(alpha = 0.7)
+
+HFC_U_gg + 
   geom_jitter(
-    data = remaining_pairs_2, 
-    mapping = aes(x = FCU, y = -0.02, colour =  FCU > 0.06),
+    data = remaining_pairs, 
+    mapping = aes(x = HFCU, y = -0.02, colour =  HFCU > 7.01),
     width = 0, 
     height = 0.01, 
     fill = NA,
     shape = 21, 
     size = 3
-  ) +
-  coord_cartesian(xlim = c(-50, 125), ylim = c(NA, 0.06))
-
+  ) 
 ## Or with linked model 
 
-FC_UP_linked_gg <- Qs_link_BIG %>%
-  extract_logls(numer = c(FC = 1), denom = c(U = 1)) %>%
+HFC_UP_linked_gg <- Qs_link_BIG %>%
+  extract_logls(numer = c(HFC = 1), denom = c(U = 1)) %>%
   ggplot(aes(x = logl_ratio, fill = true_relat)) +
-  geom_density(alpha = 0.25) +
-  ggtitle("Linked FC / UP Logl Ratio")
+  geom_density(alpha = 0.7)
 
-FC_UP_linked_gg
+HFC_UP_linked_gg
 
-FC_UP_linked_logls <- extract_logls(
+HFC_UP_linked_logls <- extract_logls(
   Qs_link_BIG,
-  numer = c(FC = 1),
+  numer = c(HFC = 1),
   denom = c(U = 1)
 )
 
 ### Get our false positive and false negative rates to guide selection of T 
-FC_U_thresholds <- mc_sample_simple(
+HFC_U_thresholds <- mc_sample_simple(
   Qs,
   Q_for_fnrs = Qs_link_BIG, 
-  nu = "FC",
+  nu = "HFC",
   de = "U", 
   method = "IS", 
-  FNRs = c(0.3, 0.2, 0.1, 0.05, 0.025, 0.01, 0.001, 0.0001))
+  FNRs = c(0.5, 0.3, 0.2, 0.1, 0.05, 0.025, 0.01, 0.001, 0.0001))
 
+print(HFC_U_thresholds)
 
-write.csv(FC_U_thresholds, "FC_U_thresholds_linked.csv")
+hfc_fpos <- 0.0000863
+hfc_fneg <-  0.5
 
-FC_UP_linked_gg + 
+HFC_plot <- HFC_UP_linked_gg + 
   geom_jitter(
-    data = remaining_pairs_2, 
-    mapping = aes(x = FCU, y = -0.02, colour =  FCU > 0.09),
+    data = remaining_pairs,
+    mapping = aes(x = HFCU, y = -0.002, colour = HFCU > 7.01),
     width = 0, 
-    height = 0.01, 
+    height = 0.001, 
     fill = NA,
     shape = 21, 
     size = 3
   ) +
-  coord_cartesian(xlim = c(-50, 125), ylim = c(NA, 0.06))
+  scale_fill_brewer(palette = "RdYlGn") +
+  scale_colour_manual(values = c("red", "black")) +
+  theme_bw() +
+  labs(fill = "True Relationship")+
+  annotate("text", 
+           x = 130,
+           y = 0.099,  
+           label = paste("FPR:", HSU_fpos, "\nFNR:", HSU_fneg), 
+           hjust = 0, 
+           size = 3, 
+           color = "black")+
+  xlab("Log Likelihood Ratio") +
+  ylab("Density")
+
+plot(HFC_plot)
+
+emf("C:/Users/samue/Desktop/Honours/HSU_LLR_plot.emf", width = 10, height = 8)  # Set the width and height in inches
+print(HSU_plot)
+dev.off()
 
 
 topFC_UP <- remaining_pairs_2 %>% # remove the PO pairs 
