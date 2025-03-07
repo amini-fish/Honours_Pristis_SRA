@@ -34,9 +34,7 @@ gl.write.csv(gl, outfile = "outfile.csv", outpath = "C:/Users/samue/Desktop/Hono
 
 data <- read.csv("outfile.csv")
 
-dim(data)
-
-data
+glimpse(data)
 
 #### Prepare the data ####
 
@@ -158,7 +156,7 @@ ckmr
 
 kappas # all possible
 
-kappas[c("FS", "HS", "HFC", "U"), ]
+kappas[c("FS", "HS", "FC", "HFC", "U"), ]
 
 #### Simulate dyads for each to approximate the LLRs and therefore the fpos/fneg ####
 
@@ -169,13 +167,12 @@ kappas[c("FS", "HS", "HFC", "U"), ]
 
 Qs <- simulate_Qij(
   ckmr, 
-  calc_relats = c("FS", "HS", "HFC", "U"),
-  sim_relats = c("FS", "HS", "HFC", "U") 
+  calc_relats = c("FS", "HS","FC", "HFC", "U"),
+  sim_relats = c("FS", "HS","FC", "HFC", "U") 
 )
 
 #### Linkage Model ####
 
-## We will use our linkage model to calibrate our false negative values 
 ## Lets use Pristis pectinata genome as our model for linkage model
 
 n_chromosomes = 46 #chromosome number
@@ -201,7 +198,7 @@ afreqs_link <- sprinkle_markers_into_genome(afreqs_ready, fake_chromo_lengths$ch
 
 ckmr_link <- create_ckmr(
   D = afreqs_link,
-  kappa_matrix = kappas[c("FS", "HS", "HFC", "U"), ],
+  kappa_matrix = kappas[c("FS", "HS","FC", "HFC", "U"), ],
   ge_mod_assumed = ge_model_TGIE,
   ge_mod_true = ge_model_TGIE,
   ge_mod_assumed_pars_list = list(epsilon = 0.005),
@@ -213,8 +210,8 @@ ckmr_link <- create_ckmr(
 
 Qs_link_BIG <- simulate_Qij(
   ckmr_link, 
-  calc_relats = c("FS", "HS", "HFC", "U"),
-  sim_relats = c("FS", "HS", "HFC", "U"),
+  calc_relats = c("FS", "HS","FC", "HFC", "U"),
+  sim_relats = c("FS", "HS","FC", "HFC", "U"),
   unlinked = FALSE, 
   pedigree_list = pedigrees
 )
@@ -233,12 +230,15 @@ matchers # have a geeze
 
 #### Run pairwsie estimates of LLRs for our empirical data #### 
 
+## Make sure that all relationship combinations are consisent with CKMR models
+
 pw_4_LRTs <- lapply(
   X = list(
     FSU = c("FS", "U"),
     FSHS = c("FS", "HS"),
-    HSHFC = c("HS", "HFC"), 
     HSU = c("HS", "U"),
+    HSFC = c("HS", "FC"),
+    HSHFC = c("HS", "HFC"), 
     HFCU = c("HFC", "U")
   ),
   FUN = function(x) {
