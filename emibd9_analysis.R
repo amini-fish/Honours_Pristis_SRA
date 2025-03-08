@@ -1,7 +1,6 @@
+#### Welcome brave traveler...this script will be used to run the EMIBD9 program through dartR.captive ####
 
-setwd("C:/Users/samue/Desktop/Honours/analysis")
-
-#### LOAD REQUIRED PACKAGES ####
+#### Install packages ####
 install.packages("dartRverse")
 
 install.packages("ggplot2")
@@ -28,6 +27,10 @@ BiocManager::install("SNPRelate")
 
 devtools::install_github("green-striped-gecko/dartR.captive@dev")
 
+#### Set working directory ####
+
+setwd("C:/Users/samue/Desktop/Honours/analysis")
+
 #### Load Packages ####
 
 library(SNPRelate)
@@ -43,27 +46,29 @@ library(graph4lg)
 library(viridis)
 library(ggraph)
 
-################################################################################
-
-### LOAD IN CLEAN GENOTYPE DATA ###
+#### Load the filtered genotype data in - for more info on how the data has been filtered use basics ####
 
 gl <- get(load("C:/Users/samue/Desktop/Honours/analysis/daly_geno_clean.Rdata")); gl
 
 gl <- gl.filter.monomorphs(gl)
 
-## Run our analysis - using EMIBD9 implementation 
+#gl.report.basics(gl)
+
+#### Run our analysis - using EMIBD9 implementation #### 
+
+## Calculate the number of independant pairwise comps where K(K-1)/2
 
 nInd(gl)
 
 29*(29-1)/2
 
-daly.rel <- gl.run.EMIBD9(gl, 
+## Run it via existing function - or can run from CMD 
+
+daly.rel <- dartR.captive::gl.run.EMIBD9(gl, 
                           Inbreed = 1, 
                           emibd9.path =  "C:/EMIBD")
 
-daly.rel
-
-## Lets extract the relatedness data from our output file
+#### Results ####
 
 diag(daly.rel$rel) <- 0 # removes self comparisons hooray
 
@@ -75,24 +80,22 @@ emibd.rel <- emibd.rel[,c(1,2,4)] # remove your third column (not needed and is 
 
 View(emibd.rel)
 
-save(emibd.rel, file = "emibd_results.csv")
+save(emibd.rel, file = "emibd_results.csv") # Not essential but helps as a just in case
 
-## Calculate our summary statistics for relatedness...
-emibd.rel
+#### Summary statistics ####
 
-mean.rel <- mean(as.numeric(emibd.rel$value)) ## Mean is 0.0129 
-sd.rel <- sd(as.numeric(emibd.rel$value)) ## SD is +- 0.0323
-med <- median(as.numeric(emibd.rel$value)) ## 0.00575
-
+mean.rel <- mean(as.numeric(emibd.rel$value))  
+sd.rel <- sd(as.numeric(emibd.rel$value)) 
+med <- median(as.numeric(emibd.rel$value))
 
 mean.rel #0.013
 sd.rel #0.033
 med #0.0052
 
-### PLOT THE RAW RESULTS
+#### Visualise the distribition of results as a histogram ####
 
 rel.hist <- ggplot(data = emibd.rel, aes(x = as.numeric(value))) +
-  geom_histogram(bins = 100, col = I("black")) +
+  geom_histogram(bins = 80, col = I("black")) +
   xlab("Relatedness") +
   ylab("Count") +
   theme_bw()
@@ -113,96 +116,21 @@ rel.hist <- rel.hist +
   
 print(rel.hist)
 
-emf("C:/Users/samue/Desktop/Honours/EMIBD9_Histogram.emf", width = 10, height = 8)  # Set the width and height in inches
+emf("C:/Users/samue/Desktop/Honours/EMIBD9_Histogram.emf", width = 10, height = 8)
 print(rel.hist)
 dev.off()
 
-
-################################################################################
-
-################################################################################
-
-############# NEEDS TO BE UPDATED #####################
-
-# Combine together
-ibd9DT <- as.matrix(cbind(ibd9Tab, Cohort1, Cohort2, CC)); ibd9DT
-
-# Combine together
-ibd9DT <- data.frame(cbind(ibd9Tab, Cohort1, Cohort2, CC)); ibd9DT
-
-mean(as.numeric(ibd9DT$r.1.2.)) ## Mean is 0.0129 
-sd(as.numeric(ibd9DT$r.1.2.)) ## SD is +- 0.0323
-
-
-## Test for within and between cohort means, note this isn't perfect
-group_mean<- aggregate(x= as.numeric(ibd9DT$r.1.2.),
-                       # Specify group indicator
-                       by = list(ibd9DT$CC),      
-                       # Specify function (i.e. mean)
-                       FUN = mean)
-
-group_mean
-
-group_sd <- aggregate(x= as.numeric(ibd9DT$r.1.2.),
-                       # Specify group indicator
-                       by = list(ibd9DT$CC),      
-                       # Specify function (i.e. mean)
-                       FUN = sd)
-
-group_sd
-
-#A quick look at the spread of rel values...
-
-hist(as.numeric(ibd9DT$r.1.2.), breaks = 250)
-
-## Putative siblings - we use the 95% CI from the simulations to groundtruth our sibling relationships as mean rel is 0.01
-
-emibd.sibs <- ifelse(emibd.rel$value >= 0.092 & emibd.rel$value <= 0.180, 
-               yes = "hsp", 
-               no = ifelse(emibd.rel$value >=0.204 & emibd.rel$value <= 0.296, 
-                           yes = "fsp",
-                           "unelated"))
-
-#Add the sibling assignments to a new data frame 
-
-emibd.results <- data.frame(cbind(emibd.rel, emibd.sibs)); emibd.results
-
-####  Assign kin to sibling network  #####
-
-#hsps - extract
-
-half.sibs <- subset(emibd.results, emibd.sibs == "hsp"); half.sibs
-
-#fsps - extract 
-
-full.sibs <- subset(emibd.results, emibd.sibs == "fsp"); full.sibs
-
-# ALLLLL stitched together now 
-
-emibd.siblings <- rbind(half.sibs, full.sibs); sibs.all
-
-# Remove duplicated pairs (i.e., Ab & BA)
-
-sibs.all[!duplicated(sibs.all$r.1.2.), ] 
-sibs.all
-
-### Lets reload our related individuals updated with names and make the heatmap...
-
-#######################################################################
-
-### NETWORK PLOT FOR KIN ONLY ###
+#### NETWORK PLOT FOR KIN ONLY ####
 
 ## write our sibling results as csv 
 
 #write.csv(emibd.siblings, "emibd_sibs_daly.csv")
-
 
 sibs  <- read.csv("C:/Users/samue/Desktop/Honours/analysis/emibd_sibs_daly.csv")
 meta <- read.csv("C:/Users/samue/Desktop/Honours/analysis/Daly_meta.csv")
 
 meta <- meta[meta$id %in% c(sibs$id_1, sibs$id_2),]
 
-meta
 data <- sibs
 
 kinNWdata <- data %>% 
@@ -219,7 +147,9 @@ meta
 billabong <- c("different", "same", "same", "different", "same", "different", "different", "same", "same", "same")
 
 kinNWdata$billabong <- billabong
+
 kinNWdata
+
 #This makes our data frame from which the pariwise network plot between select individuals will be drawn 
 
 network <- igraph::graph_from_data_frame(d = kinNWdata, directed = TRUE) 
@@ -240,7 +170,6 @@ network <- igraph::graph_from_data_frame(d = kinNWdata, directed = TRUE,
 layout <- ggraph::create_layout(network, layout = 'igraph', 
                                 circular = FALSE, algorithm = 'fr')
 attributes(layout)
-
 
 
 kin_network1 <- ggraph::ggraph(network, layout = layout) + 
@@ -276,20 +205,76 @@ kin_network1 <- ggraph::ggraph(network, layout = layout) +
     legend.position = "right",
     plot.margin = unit(rep(1,5), "cm"), 
     margin = margin(20, 0, 40, 10))
-  
+
 
 print(kin_network1)
 
 ## Save it as an EMF
 
-emf("C:/Users/samue/Desktop/Honours/EMIBD9_Network.emf", width = 10, height = 8)  # Set the width and height in inches
+emf("C:/Users/samue/Desktop/Honours/EMIBD9_Network.emf", width = 10, height = 8)  
 print(kin_network1)
 dev.off()
 
+#### Misc code ####
 
-## k(k-1)/2
-(10/(29*(29-1)/2))*100
+# Combine together
+ibd9DT <- as.matrix(cbind(ibd9Tab, Cohort1, Cohort2, CC)); ibd9DT
 
+# Combine together
+ibd9DT <- data.frame(cbind(ibd9Tab, Cohort1, Cohort2, CC)); ibd9DT
+
+mean(as.numeric(ibd9DT$r.1.2.)) ## Mean is 0.0129 
+sd(as.numeric(ibd9DT$r.1.2.)) ## SD is +- 0.0323
+
+# Test for within and between cohort means, note this isn't perfect
+group_mean<- aggregate(x= as.numeric(ibd9DT$r.1.2.),
+                       # Specify group indicator
+                       by = list(ibd9DT$CC),      
+                       # Specify function (i.e. mean)
+                       FUN = mean)
+
+group_mean
+
+group_sd <- aggregate(x= as.numeric(ibd9DT$r.1.2.),
+                       # Specify group indicator
+                       by = list(ibd9DT$CC),      
+                       # Specify function (i.e. mean)
+                       FUN = sd)
+
+#A quick look at the spread of rel values...
+
+hist(as.numeric(ibd9DT$r.1.2.), breaks = 250)
+
+## Putative siblings - we use the 95% CI from the simulations to groundtruth our sibling relationships as mean rel is 0.01
+
+emibd.sibs <- ifelse(emibd.rel$value >= 0.092 & emibd.rel$value <= 0.180, 
+               yes = "hsp", 
+               no = ifelse(emibd.rel$value >=0.204 & emibd.rel$value <= 0.296, 
+                           yes = "fsp",
+                           "unelated"))
+
+#Add the sibling assignments to a new data frame 
+
+emibd.results <- data.frame(cbind(emibd.rel, emibd.sibs)); emibd.results
+
+####  Assign kin to sibling network  #####
+
+#hsps - extract
+
+half.sibs <- subset(emibd.results, emibd.sibs == "hsp"); half.sibs
+
+#fsps - extract 
+
+full.sibs <- subset(emibd.results, emibd.sibs == "fsp"); full.sibs
+
+# ALLLLL stitched together now 
+
+emibd.siblings <- rbind(half.sibs, full.sibs); sibs.all
+
+# Remove duplicated pairs (i.e., Ab & BA)
+
+sibs.all[!duplicated(sibs.all$r.1.2.), ] 
+sibs.all
 
 ## Fucking around
 
@@ -332,7 +317,6 @@ dist_km <- pw_mat_to_df(as.matrix(dist_km))
 View(dist_km)
 
 ## now we need to merge the distance matrix as a column to the other data - so we can run corMLPE
-
 
 dist_data <- dist_km %>% arrange(id_link)
 
