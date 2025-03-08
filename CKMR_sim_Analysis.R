@@ -14,7 +14,6 @@ install_github("https://github.com/eriqande/CKMRsim/tree/master")
 
 #### Load packages ####
 
-
 library(devtools)
 library(vcfR)
 library(CKMRsim)
@@ -143,7 +142,7 @@ afreqs_ready
 
 ckmr <- create_ckmr(
   D = afreqs_ready,
-  kappa_matrix = kappas[c("FS", "HS", "HFC", "U"), ],
+  kappa_matrix = kappas[c("FS", "HS","HFC", "U"), ],
   ge_mod_assumed = ge_model_TGIE,
   ge_mod_true = ge_model_TGIE,
   ge_mod_assumed_pars_list = list(epsilon = 0.005),
@@ -156,7 +155,7 @@ ckmr
 
 kappas # all possible
 
-kappas[c("FS", "HS", "FC", "HFC", "U"), ]
+kappas[c("FS", "HS", "HFC", "U"), ]
 
 #### Simulate dyads for each to approximate the LLRs and therefore the fpos/fneg ####
 
@@ -167,8 +166,8 @@ kappas[c("FS", "HS", "FC", "HFC", "U"), ]
 
 Qs <- simulate_Qij(
   ckmr, 
-  calc_relats = c("FS", "HS","FC", "HFC", "U"),
-  sim_relats = c("FS", "HS","FC", "HFC", "U") 
+  calc_relats = c("FS", "HS", "HFC", "U"),
+  sim_relats = c("FS", "HS", "HFC", "U") 
 )
 
 #### Linkage Model ####
@@ -198,7 +197,7 @@ afreqs_link <- sprinkle_markers_into_genome(afreqs_ready, fake_chromo_lengths$ch
 
 ckmr_link <- create_ckmr(
   D = afreqs_link,
-  kappa_matrix = kappas[c("FS", "HS","FC", "HFC", "U"), ],
+  kappa_matrix = kappas[c("FS", "HS", "HFC", "U"), ],
   ge_mod_assumed = ge_model_TGIE,
   ge_mod_true = ge_model_TGIE,
   ge_mod_assumed_pars_list = list(epsilon = 0.005),
@@ -210,8 +209,8 @@ ckmr_link <- create_ckmr(
 
 Qs_link_BIG <- simulate_Qij(
   ckmr_link, 
-  calc_relats = c("FS", "HS","FC", "HFC", "U"),
-  sim_relats = c("FS", "HS","FC", "HFC", "U"),
+  calc_relats = c("FS", "HS", "HFC", "U"),
+  sim_relats = c("FS", "HS",  "HFC", "U"),
   unlinked = FALSE, 
   pedigree_list = pedigrees
 )
@@ -237,8 +236,6 @@ pw_4_LRTs <- lapply(
     FSU = c("FS", "U"),
     FSHS = c("FS", "HS"),
     HSU = c("HS", "U"),
-    HSFC = c("HS", "FC"),
-    HSHFC = c("HS", "HFC"), 
     HFCU = c("HFC", "U")
   ),
   FUN = function(x) {
@@ -314,15 +311,15 @@ FSU_link_plot <- FS_U_link_gg +
     height = 0.001, 
     fill = NA,
     shape = 21, 
-    size = 3
+    size = 3.5
   ) +
   scale_fill_brewer(palette = "RdYlGn") +
   scale_colour_manual(values = c("red", "black")) +
   theme_bw() +
   labs(fill = "True Relationship")+
   annotate("text", 
-           x = 700,
-           y = 0.027,  
+           x = 650,
+           y = 0.013,  
            label = paste("FPR:", fs_fpos, "\nFNR:", fs_fneg), 
            hjust = 0, 
            size = 3, 
@@ -338,7 +335,7 @@ dev.off()
 
 write.csv(FSU_thresholds, "FSU_thresholds_linked.csv")
 
-#### Extract Full Sibling Pairs #### 
+## Extract Full Sibling Pairs ##
 
 topFS_U <- pw_4_LRTs %>% # remove the PO pairs 
   arrange(desc(FSU)) %>%
@@ -399,7 +396,6 @@ topFS_HS
 
 topFS_HS$rel <- rep("full-sibs")
 
-
 set.seed(54) # for the jittering
 
 FSHS_plot <- FS_HS_linked_gg +
@@ -416,7 +412,14 @@ FSHS_plot <- FS_HS_linked_gg +
   theme_bw() +
   xlab("Log Likelihood Ratio") +
   ylab("Density")+
-  labs(fill = "True Relationship")
+  labs(fill = "True Relationship") +
+  annotate("text", 
+           x = 250,
+           y = 0.021,  
+           label = paste("FPR: 5.86e-143", "\nFNR: 0.001"), 
+           hjust = 0, 
+           size = 3, 
+           color = "black")
 
 print(FSHS_plot)
 
@@ -433,15 +436,15 @@ remaining_pairs # work from this now
 
 #### Half sib Unrelated model ####
 
-HS_UP_gg <- Qs %>%
+HS_U_gg <- Qs %>%
   extract_logls(numer = c(HS = 1), denom = c(U = 1)) %>%
   ggplot(aes(x = logl_ratio, fill = true_relat)) +
   geom_density(alpha = 0.25) +
   ggtitle("HS / UP Logl Ratio")
 
-HS_UP_gg
+HS_U_gg
 
-HS_UP_logls <- extract_logls(
+HS_U_logls <- extract_logls(
   Qs,
   numer = c(HS = 1),
   denom = c(U = 1)
@@ -455,13 +458,15 @@ mc_sample_simple(
   method = "IS", 
   FNRs = c(0.3, 0.2, 0.1, 0.05, 0.01, 0.001, 0.0001))
 
-topHS_UP <- remaining_pairs %>% # remove the PO pairs 
+topHS_U <- remaining_pairs %>% # remove the PO pairs 
   arrange(desc(HSU)) %>%
   filter(HSU > 54)
 
-topHS_UP
+topHS_U
 
 set.seed(54) # for the jittering
+
+# Unlinked model
 
 HS_UP_gg +
   geom_jitter(
@@ -490,6 +495,7 @@ HS_UP_linked_logls <- extract_logls(
 )
 
 ### Get our false positive and false negative rates to guide selection of T 
+
 HS_U_thresholds <- mc_sample_simple(
   Qs,
   Q_for_fnrs = Qs_link_BIG, 
@@ -500,11 +506,13 @@ HS_U_thresholds <- mc_sample_simple(
 
 print(HS_U_thresholds)
 
-top_HS_UP <- remaining_pairs %>% # remove the PO pairs 
+topHS_U <- remaining_pairs %>% # remove the PO pairs 
   arrange(desc(HSU)) %>%
   filter(HSU > 12.3)
 
-topHS_UP
+topHS_U$rel <- rep("half-sibs")
+
+topHS_U
 
 HSU_fpos <- 1.40e-26
 HSU_fneg <- 0.0001 
@@ -540,185 +548,51 @@ print(HSU_plot)
 dev.off()
 
 remaining_pairs <- remaining_pairs %>%
-  anti_join(bind_rows(topHS_UP), by = c("D2_indiv", "D1_indiv"))
+  anti_join(bind_rows(topHS_U), by = c("D2_indiv", "D1_indiv"))
 
-### Move on to Half Sib to Half-first cousins ####
 
-## Super interesting that our linkage model finds the same pairs as EMIBD9 but when unliked it doesn't and makes the dyads all cousins instead
+#### Need to check HS/HFC #### 
 
-HS_HFC_gg <- Qs %>%
+HS_HFC_linked_gg <- Qs_link_BIG %>%
   extract_logls(numer = c(HS = 1), denom = c(HFC = 1)) %>%
   ggplot(aes(x = logl_ratio, fill = true_relat)) +
-  geom_density(alpha = 0.25) +
-  ggtitle("HS / FC Logl Ratio")
+  geom_density(alpha = 0.7)
 
-HS_HFC_gg
+HS_HFC_linked_gg
 
-HS_HFC_logls <- extract_logls(
-  Qs,
+HS_HFC_linked_logls <- extract_logls(
+  Qs_link_BIG,
   numer = c(HS = 1),
   denom = c(HFC = 1)
 )
 
 ### Get our false positive and false negative rates to guide selection of T 
-
-mc_sample_simple(
+HS_HFC_thresholds <- mc_sample_simple(
   Qs,
+  Q_for_fnrs = Qs_link_BIG, 
   nu = "HS", 
   de = "HFC", 
   method = "IS", 
-  FNRs = c(0.3, 0.2, 0.1, 0.05, 0.01, 0.001, 0.0001)
-)
+  FNRs = c(0.3, 0.2, 0.1, 0.05, 0.01, 0.001, 0.0001)) 
 
-#Quick visual inspection
+print(HS_HFC_thresholds)
 
-glimpse(remaining_pairs)
+## Find the true half sibs 
 
-topHS_HFC <- remaining_pairs %>% # remove the PO pairs 
+top_HS_HFC <- remaining_pairs %>% # remove the PO pairs 
   arrange(desc(HSHFC)) %>%
-  filter(HSHFC > 19.9)
+  filter(HSHFC > -11.5)
 
-topHS_HFC
+top_HS_FC
+topHS_U
 
-set.seed(54) # for the jittering
+HSFC_fpos <- 4.68e-25
+HSFC_fneg <- 0.0001 
 
-HS_HFC_gg +
+HSFC_plot <- HS_FC_linked_gg +
   geom_jitter(
     data = remaining_pairs,
-    mapping = aes(x = HSHFC, y = -0.002, colour = HSHFC > 1.10),
-    width = 0, 
-    height = 0.001, 
-    fill = NA,
-    shape = 21, 
-    size = 3
-  )
-
-
-
-HS_FC_linked_gg <- Qs_link_BIG %>%
-  extract_logls(numer = c(HS = 1), denom = c(FC = 1)) %>%
-  ggplot(aes(x = logl_ratio, fill = true_relat)) +
-  geom_density(alpha = 0.25) +
-  ggtitle("Linked HS / FC Logl Ratio")
-
-HS_FC_linked_gg
-
-HS_FC_linked_logls <- extract_logls(
-  Qs_link_BIG,
-  numer = c(HS = 1),
-  denom = c(FC = 1)
-)
-
-### Get our false positive and false negative rates to guide selection of T 
-HS_FC_thresholds <- mc_sample_simple(
-  Qs,
-  Q_for_fnrs = Qs_link_BIG, 
-  nu = "HS", 
-  de = "FC", 
-  method = "IS", 
-  FNRs = c(0.3, 0.2, 0.1, 0.05, 0.01, 0.001, 0.0001))
-
-write.csv(HS_FC_thresholds, "HS_FC_thresholds_linked.csv")
-
-
-topHS_FC <- remaining_pairs %>% # remove the PO pairs 
-  arrange(desc(HSFC)) %>%
-  filter(HSFC> -21.1)
-
-topHS_FC
-
-HS_FC_linked_gg +
-  geom_jitter(
-    data = remaining_pairs,
-    mapping = aes(x = HSFC, y = -0.002, colour = HSFC > -21.1),
-    width = 0, 
-    height = 0.001, 
-    fill = NA,
-    shape = 21, 
-    size = 3
-  )
-
-## Check they match up
-topHS_FC
-
-topHS_FC$rel <- rep("half-sib")
-
-remaining_pairs_2 <- remaining_pairs %>%
-  anti_join(bind_rows(topFS_HS, topHS_FC), by = c("D2_indiv", "D1_indiv"))
-
-#### HFC and Unrelated ####
-
-HFCU_llr <- ggplot(remaining_pairs, aes(x = HFCU)) + 
-  geom_histogram(bins = 30)
-
-HFCU_llr
-
-HFCU_llr +
-  xlim(0, NA) +
-  ggtitle("Pairs with First COusins > -70")
-
-set.seed(52)
-
-## Get Lamda and thresholds 
-
-mc_sample_simple(
-  Qs,
-  Q_for_fnrs = Qs_link_BIG,
-  nu = "HFC", 
-  de = "U", 
-  method = "IS", 
-  FNRs = c(0.3, 0.2, 0.1, 0.05, 0.01, 0.001, 0.0001, 0.5))
-
-## Visualise LLRs
-
-HFC_U_gg <- Qs %>%
-  extract_logls(numer = c(HFC = 1), denom = c(U = 1)) %>%
-  ggplot(aes(x = logl_ratio, fill = true_relat)) +
-  geom_density(alpha = 0.7)
-
-HFC_U_gg + 
-  geom_jitter(
-    data = remaining_pairs, 
-    mapping = aes(x = HFCU, y = -0.02, colour =  HFCU > 7.01),
-    width = 0, 
-    height = 0.01, 
-    fill = NA,
-    shape = 21, 
-    size = 3
-  ) 
-## Or with linked model 
-
-HFC_UP_linked_gg <- Qs_link_BIG %>%
-  extract_logls(numer = c(HFC = 1), denom = c(U = 1)) %>%
-  ggplot(aes(x = logl_ratio, fill = true_relat)) +
-  geom_density(alpha = 0.7)
-
-HFC_UP_linked_gg
-
-HFC_UP_linked_logls <- extract_logls(
-  Qs_link_BIG,
-  numer = c(HFC = 1),
-  denom = c(U = 1)
-)
-
-### Get our false positive and false negative rates to guide selection of T 
-HFC_U_thresholds <- mc_sample_simple(
-  Qs,
-  Q_for_fnrs = Qs_link_BIG, 
-  nu = "HFC",
-  de = "U", 
-  method = "IS", 
-  FNRs = c(0.5, 0.3, 0.2, 0.1, 0.05, 0.025, 0.01, 0.001, 0.0001))
-
-print(HFC_U_thresholds)
-
-hfc_fpos <- 0.0000863
-hfc_fneg <-  0.5
-
-HFC_plot <- HFC_UP_linked_gg + 
-  geom_jitter(
-    data = remaining_pairs,
-    mapping = aes(x = HFCU, y = -0.002, colour = HFCU > 7.01),
+    mapping = aes(x = HSFC, y = -0.002, colour = HSFC > -20.8),
     width = 0, 
     height = 0.001, 
     fill = NA,
@@ -730,34 +604,209 @@ HFC_plot <- HFC_UP_linked_gg +
   theme_bw() +
   labs(fill = "True Relationship")+
   annotate("text", 
-           x = 130,
-           y = 0.099,  
-           label = paste("FPR:", HSU_fpos, "\nFNR:", HSU_fneg), 
+           x = 160,
+           y = 0.05,  
+           label = paste("FPR:", HSFC_fpos, "\nFNR:", HSFC_fneg), 
            hjust = 0, 
            size = 3, 
            color = "black")+
   xlab("Log Likelihood Ratio") +
   ylab("Density")
 
-plot(HFC_plot)
+plot(HSFC_plot)
 
-emf("C:/Users/samue/Desktop/Honours/HSU_LLR_plot.emf", width = 10, height = 8)  # Set the width and height in inches
-print(HSU_plot)
+emf("C:/Users/samue/Desktop/Honours/HSFC_LLR_plot.emf", width = 10, height = 8)  # Set the width and height in inches
+print(HSFC_plot)
 dev.off()
 
-
-topFC_UP <- remaining_pairs_2 %>% # remove the PO pairs 
-  arrange(desc(FCU)) %>%
-  filter(FCU > 0.09)
-
-topFC_UP
-topFC_UP$rel <- rep("first-cousin") 
+remaining_pairs <- remaining_pairs %>%
+  anti_join(bind_rows(topHS_UP), by = c("D2_indiv", "D1_indiv"))
 
 
-##-----------------Stitch all our kin pairs together--------------------------##
+#### Half First Cousins and Unrelated ####
 
-sib_groups <- rbind(topFS_HS, topHS_FC, topFC_UP)
 
-sib_groups
+HFC_U_linked_gg
 
-?simulate_and_calc_Q
+HFC_U_linked_logls <- extract_logls(
+  Qs_link_BIG,
+  numer = c(HFC= 1),
+  denom = c(U = 1)
+)
+
+
+### Get our false positive and false negative rates to guide selection of T 
+HFC_U_thresholds <- mc_sample_simple(
+  Qs,
+  Q_for_fnrs = Qs_link_BIG, 
+  nu = "HFC", 
+  de = "U", 
+  method = "IS", 
+  FNRs = c(0.5, 0.25, 0.3, 0.2, 0.1, 0.05, 0.01, 0.001, 0.0001)) 
+
+print(HFC_U_thresholds)
+
+## Select our true HSP
+
+top_HFC_U <- remaining_pairs %>% # remove the PO pairs 
+  arrange(desc(HFCU)) %>%
+  filter(HFCU > 3.14)
+
+top_HFC_U$rel <- rep("half-first cousin")
+top_HFC_U
+
+HFCU_fpos <- 0.0033
+HFCU_fneg <- 0.25
+
+HFC_U_linked_gg <- Qs_link_BIG %>%
+  extract_logls(numer = c(HFC = 1), denom = c(U = 1)) %>%
+  ggplot(aes(x = logl_ratio, fill = true_relat)) +
+  geom_density(alpha = 0.7)
+
+
+HFCU_plot <- HFC_U_linked_gg +
+  geom_jitter(
+    data = remaining_pairs,
+    mapping = aes(x = HFCU, y = -0.002, colour = HFCU > 3.14),
+    width = 0.01, 
+    height = 0.001, 
+    fill = NA,
+    shape = 21, 
+    size = 4
+  ) +
+  scale_fill_brewer(palette = "RdYlGn") +
+  scale_colour_manual(values = c("red", "black")) +
+  theme_bw() +
+  labs(fill = "True Relationship")+
+  annotate("text", 
+           x = 130,
+           y = 0.094,  
+           label = paste("FPR:", HFCU_fpos, "\nFNR:", HFCU_fneg), 
+           hjust = 0, 
+           size = 3, 
+           color = "black")+
+  xlab("Log Likelihood Ratio") +
+  ylab("Density")
+
+plot(HFCU_plot)
+
+emf("C:/Users/samue/Desktop/Honours/HFCU_LLR_plot.emf", width = 10, height = 8) 
+print(HFCU_plot)
+dev.off()
+
+remaining_pairs <- remaining_pairs %>%
+  anti_join(bind_rows(top_HFC_U), by = c("D2_indiv", "D1_indiv"))
+
+#### Merge all relatives ####
+
+library(igraph)
+library(ggplot2)
+library(dplyr)
+
+all_kin <- bind_rows(topFS_U, topHS_U, top_HFC_U)
+
+print(all_kin)
+
+all_kin <- all_kin %>%
+  select(D2_indiv, D1_indiv, num_loc, rel)
+
+colnames(all_kin) <- c("id_1", "id_2", "loc", "rel"); all_kin
+
+## We need to a) check the billabongs b) check birth year 
+
+# first we can deal with selecting the billabong based on the meta file 
+
+meta <- read.csv("C:/Users/samue/Desktop/Honours/analysis/Daly_meta.csv")
+
+all_kin <- all_kin %>%
+  left_join(meta, by = c("id_1" = "id")) %>%
+rename(birth_year_1 = birthyear, billabong_1 = billabong) %>%
+  left_join(meta, by = c("id_2" = "id")) %>%
+  rename(birth_year_2 = birthyear, billabong_2 = billabong) %>%
+  mutate(
+    birth_year_diff = abs(birth_year_1 - birth_year_2),  # Absolute age difference
+    same_billabong = billabong_1 == billabong_2) %>%
+  select(id_1, id_2, rel, birth_year_diff, same_billabong)
+
+# Last step is to export it 
+
+View(all_kin)
+
+write.csv(all_kin, "CKMR_kin.csv")
+
+#### Visualise as a network plot with extra relatives ####
+
+## write our sibling results as csv 
+
+sibs <- read.csv("C:/Users/samue/Desktop/Honours/analysis/CKMR_kin.csv")
+meta <- read.csv("C:/Users/samue/Desktop/Honours/analysis/Daly_meta.csv")
+
+meta <- meta[meta$id %in% c(sibs$id_1, sibs$id_2),]
+meta
+
+kinNWdata <- sibs %>%
+  select(id_1, id_2, rel, birth_year_diff, same_billabong)
+
+#This makes our data frame from which the pariwise network plot between select individuals will be drawn 
+
+network <- igraph::graph_from_data_frame(d = kinNWdata, directed = TRUE); print(network) # works
+
+df <- data.frame(id = igraph::V(network)$name)
+df
+
+vertices <- dplyr::left_join(df, meta, by = "id") %>%
+  dplyr::select(id, sex, birthyear, billabong)
+
+vertices <- as_tibble(vertices, what = "vertices")
+
+vertices
+
+network <- igraph::graph_from_data_frame(d = kinNWdata, directed = TRUE,
+                                         vertices = vertices ) 
+
+layout <- ggraph::create_layout(network, layout = 'igraph', 
+                                circular = FALSE, algorithm = 'fr')
+attributes(layout)
+
+## Plot the network ##
+
+kin_network1 <- ggraph::ggraph(network, layout = layout) + 
+  ggraph::geom_edge_link( 
+    aes(width = 2,
+        edge_colour = factor(kinNWdata$rel), 
+        edge_linetype = kinNWdata$same_billabong),
+    edge_alpha = 1) +
+  ggraph::scale_edge_width(range = c(3), breaks = c(0,1,3), name = "Cohort Gap") +
+  ggraph::scale_edge_linetype_manual(values = c("dashed", "solid"), 
+                                     name = "Capture Location", 
+                                     aesthetics = "edge_linetype") +
+  ggraph::scale_edge_colour_manual(values = c("skyblue", "red3", "orange"),
+                                   name = "Kin Type",
+                                   aesthetics = "edge_colour",
+                                   na.value = "grey50") +
+  ggraph::geom_node_point(aes(shape = sex),
+                          size = 5) +
+  ggraph::geom_node_text( aes(label = df$id), repel = TRUE, 
+                          size = 5, color = "black") +
+  ggplot2::scale_color_manual(values = adegenet::funky(9), na.value = "grey50") +
+  labs(shape = "Sex") +
+  ggplot2::theme_bw() +
+  guides(edge_width = "none") +
+  ggplot2::theme(
+    panel.grid = element_blank(), 
+    axis.text = element_blank(), 
+    axis.title = element_blank(), 
+    axis.ticks = element_blank(),
+    plot.title = element_text(hjust = 0.5, size = 15),
+    legend.position = "right",
+    plot.margin = unit(rep(1,5), "cm"), 
+    margin = margin(20, 0, 40, 10))
+
+print(kin_network1)
+
+## Save it as an EMF
+
+emf("C:/Users/samue/Desktop/Honours/CKMRsim_Network.emf", width = 10, height = 8)  
+print(kin_network1)
+dev.off()
+

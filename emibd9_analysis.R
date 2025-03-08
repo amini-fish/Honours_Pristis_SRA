@@ -134,9 +134,9 @@ meta <- meta[meta$id %in% c(sibs$id_1, sibs$id_2),]
 data <- sibs
 
 kinNWdata <- data %>% 
-  dlyr::mutate(billabong_both, paste(df$n, "-", df$s))%>%
+  #dplyr::mutate(billabong_both, paste(df$n, "-", df$s))%>%
   #dplyr::mutate(Cohort_gap = cohort1 - cohort2) %>%
-  dplyr::select(id_1, id_2, relatedness, Billabong_ID2) #, Cohort_gap
+  #dplyr::select(id_1, id_2, relatedness, Billabong_ID2) #, Cohort_gap
 
 meta
 
@@ -152,7 +152,7 @@ kinNWdata
 
 #This makes our data frame from which the pariwise network plot between select individuals will be drawn 
 
-network <- igraph::graph_from_data_frame(d = kinNWdata, directed = TRUE) 
+network <- igraph::graph_from_data_frame(d = kinNWdata, directed = TRUE); network
 
 df <- data.frame(id = igraph::V(network)$name)
 df
