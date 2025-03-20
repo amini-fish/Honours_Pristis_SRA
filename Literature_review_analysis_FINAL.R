@@ -1,4 +1,5 @@
-## Packages 
+#### Install Packages ####
+
 install.packages("ggpubr")
 install.packages("gt")
 install.packages("gtExtras")
@@ -6,9 +7,7 @@ install.packages("gtExtras")
 if (!requireNamespace("ggplot2")) install.packages("ggplot2")
 if (!requireNamespace("reshape2")) install.packages("reshape2")
 
-#-------------------------------------------------------------------------------
-
-## START HERE 
+#### Load Packages into R ####
 
 library(ggplot2)
 library(tidyverse)
@@ -21,17 +20,13 @@ require(gt)
 require(gtExtras)
 library(viridis)
 
-#-------------------------------------------------------------------------------
-
-## Set working directory
+#### Set working directory ####
 
 # My desktop - or wherever you have the data stored
 
 setwd("C:/Users/samue/Desktop/Honours/Chapter_1_lit_review/Metadata")
 
-#-------------------------------------------------------------------------------
-
-## Data Loading 
+#### Data Loading ####
 
 # Dataset 1 - this is used for analysis where we don't need to split studies by category (i.e. duplicate the study in each research category)
 
@@ -41,9 +36,7 @@ data <- read.csv("relatedness_literature_review_working2.csv", stringsAsFactors 
 
 data_2 <- read.csv("relatedness_literature_review_working3.csv", stringsAsFactors = T)
 
-#-------------------------------------------------------------------------------
-
-## Data Cleaning & Filtering 
+#### Data Cleaning & Filtering ####
 
 # Now we can delete the studies that didn't make the cut (e.g. grey lit)
 
@@ -64,8 +57,6 @@ data_2 <- data_2 %>%
 ## Fixing estimator names
 
 data_2$Kinship.Method <- recode_factor(data_2$Kinship.Method, "Allele counts  " = "Allele counts", "GERUD & COLONY " = "GERUD + COLONY", "COLONY + CERVUS" = "COLONY + CERVUS", "Allele counts & GERUD 1" = "Allele counts + GERUD", "Allele counts & GERUD 2.0" = "Allele counts + GERUD", "GERUD 2.0" = "GERUD", "GERUD 2.0 & COLONY" = "GERUD + COLONY", "Allele counts, GERUD 2.0 & COLONY2" = "Allele counts + GERUD 2.0 + COLONY", "IR Values & KINSHIP 1.3" = "Kinship 1.3", "Kinship 1.3 + Cervus 2.0 " = "Kinship 1.3 + Cervus", "GERUD 1.0, COLONY, STORM & allele counts" = "Allele counts + COLONY + GERUD + STORM", "GERUD 2.0, CERVUS 3.0.7 and COLONY" = "CERVUS + COLONY + GERUD", "Allele counts, GERUD 2.0, COLONY" = "Allele counts + COLONY + GERUD", "GERUD & COLONY" = "COLONY + GERUD", "Allele counts, GERUD 2.0 & COLONY" = "Allele counts + COLONY + GERUD", "Sequoia, COLONY, dartR*" = "COLONY + dartR + Sequoia", "KINFERENCE" = "Kinference", "COLONY2" = "COLONY", "COLONY v.2." = "COLONY", "MLRELATE, COLONY v1.2, KINGROUP 1" = "ML-Relate + COLONY + KinGroup", "KinGroup  " = "KinGroup", "Allele Counts + COLONY + GERUD" = "Allele counts + COLONY + GERUD", "Coancestry + COLONY+ CERVUS " = "Coancestry + COLONY + CERVUS", "COLONY & CERVUS" = "COLONY + CERVUS", "Kinship 1.3 & Cervus" = "Kinship 1.3 + Cervus", "Allele Counts" = "Allele counts", "Allele Counts + ML-Relate" = "Allele counts + ML-Relate")
-
-#-------------------------------------------------------------------------------
 
 #####################
 ## Section 1 - ALL ##
@@ -598,6 +589,7 @@ sd(demo$No..SNPs, na.rm = T)
 # Samples Sizes 
 
 summary(as.numeric(demo$n_samples), na.rm = T)
+sd(as.numeric(demo$n_samples), na.rm = T)
 
 # Estimators
 
@@ -1020,3 +1012,4 @@ print(plot)
 
 ?scale_fill_viridis
 ## Without facet
+

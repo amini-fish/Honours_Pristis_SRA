@@ -16,6 +16,7 @@ require(gridExtra)
 require(cowplot)
 require(gt)
 require(gtExtras)
+library(devEMF)
 
 ## Load in the data - review2 is for general taxon + numbers 
 
@@ -458,26 +459,61 @@ ggsave(plot = plot_8,
        path = "C:/Users/samue/Desktop/Honours/Chapter_1_lit_review/New_Plots")
 
 ## To visualise the estimator use we need to pull in the tibble "estimator" from Lit Review ALL 
+
 ## Theres a nice bit of code that fixes all of my shit typos LOL so now we can just load it in
+
 ## Bear in mind that you need to use data2 to get accurace faceting based on research focus 
 
-# Load it in from Lit review ALL line 281 to 287
+estimator <- data %>% 
+  group_by(Kinship.Method)%>%
+  count(Kinship.Method, sort= T)
+
+print(estimator, n = 45) # quick visual check
+
+estimator$Kinship.Method <- as.character(estimator$Kinship.Method)
+
+estimator <- estimator %>%
+  mutate(Kinship.Method = strsplit(Kinship.Method, " \\+ ")) %>% 
+  unnest(Kinship.Method) %>%
+  group_by(Kinship.Method) %>%
+  summarise(n = sum(n), .groups = "drop")%>%
+  arrange(desc(n))
+
+print(estimator, n = 70)
+
+estimator$Kinship.Method <- recode_factor(estimator$Kinship.Method, "CERVUS " = "CERVUS", "Allele counts  " = "Allele counts", "CKMRsim " = "CKMRsim", "KinGroup  " = "KinGroup", "Sequioa " = "Sequoia", "Cervus" = "CERVUS")
+
+# Now, after some more visual checks we're confident we have removed any typos we can transform and count our estimator use properly
+
+estimator$Kinship.Method <- as.character(estimator$Kinship.Method)
 
 print(estimator, n = 50)
 
+# Load it in from Lit review ALL line 281 to 287
+
 # Example data
 
-estimator$Kinship.Method <- as.character(estimator$Kinship.Method)
+data$Kinship.Method <- recode_factor(data$Kinship.Method, "Allele counts  " = "Allele counts", "GERUD & COLONY " = "GERUD + COLONY", "COLONY + CERVUS" = "COLONY + CERVUS", "Allele counts & GERUD 1" = "Allele counts + GERUD", "Allele counts & GERUD 2.0" = "Allele counts + GERUD", "GERUD 2.0" = "GERUD", "GERUD 2.0 & COLONY" = "GERUD + COLONY", "Allele counts, GERUD 2.0 & COLONY2" = "Allele counts + GERUD 2.0 + COLONY", "IR Values & KINSHIP 1.3" = "Kinship 1.3", "Kinship 1.3 + Cervus 2.0 " = "Kinship 1.3 + Cervus", "GERUD 1.0, COLONY, STORM & allele counts" = "Allele counts + COLONY + GERUD + STORM", "GERUD 2.0, CERVUS 3.0.7 and COLONY" = "CERVUS + COLONY + GERUD", "Allele counts, GERUD 2.0, COLONY" = "Allele counts + COLONY + GERUD", "GERUD & COLONY" = "COLONY + GERUD", "Allele counts, GERUD 2.0 & COLONY" = "Allele counts + COLONY + GERUD", "Sequoia, COLONY, dartR*" = "COLONY + dartR + Sequoia", "KINFERENCE" = "Kinference", "COLONY2" = "COLONY", "COLONY v.2." = "COLONY", "MLRELATE, COLONY v1.2, KINGROUP 1" = "ML-Relate + COLONY + KinGroup", "KinGroup  " = "KinGroup", "Allele Counts + COLONY + GERUD" = "Allele counts + COLONY + GERUD", "Coancestry + COLONY+ CERVUS " = "Coancestry + COLONY + CERVUS", "Allele Counts" = "Allele counts", "COLONY & CERVUS" = "COLONY + CERVUS", "Kinship 1.3 & Cervus" = "Kinship 1.3 + Cervus", "CKMRsim " = "CKMRsim", "CERVUS " = "CERVUS")
+
+
+## Can add in Focus to get specific groupings, or could try tapply and use as grouping factor
+
+
+estimator <- data %>% 
+  group_by(Kinship.Method)%>%
+  count(Kinship.Method, sort= T)
 
 # Extract unique items
 unique_items <- unique(unlist(strsplit(paste(estimator$Kinship.Method, collapse = " + "), " \\+ ")))
 
-unique_items
+str(unique_items)
 
 # Initialize matrix
 matrix <- matrix(0, nrow = length(unique_items), ncol = length(unique_items),
                  dimnames = list(unique_items, unique_items))
 
+
+estimator$Kinship.Method <- as.character(estimator$Kinship.Method)
 
 # Populate the matrix
 for (i in 1:nrow(estimator)) {
@@ -499,13 +535,21 @@ for (i in 1:nrow(estimator)) {
 }
 
 # Convert matrix to data frame for ggplot
+rownames(matrix) <- gsub("CERVUS ", "CERVUS", rownames(matrix))
+colnames(matrix) <- gsub("CERVUS ", "CERVUS", colnames(matrix))
+
 matrix_df <- melt(matrix)
 
-#matrix_df$value[matrix_df$value == 0] <- NA
+matrix_df <- matrix_df %>%
+  group_by(Var1, Var2) %>%
+  summarise(value = sum(value, na.rm = TRUE), .groups = "drop")
+
+matrix_df
+## Recode the dodgy names
 
 # Plot heatmap
 plot_9 <- ggplot(matrix_df, aes(Var1, Var2, fill = value)) +
-  geom_tile(color = "white") +
+  geom_tile(color = "white", alpha = 0.8) +
   geom_text(aes(label = round(value, 1)), color = "black") +
   scale_fill_gradient(low = "white", high = "#33FF33", na.value = "white") +
   labs(x = "", y = "", fill = "Frequency") +
@@ -522,15 +566,9 @@ plot_9 <- plot_9 +
 
 print(plot_9)
 
-ggsave("plot_9.tiff",
-       plot = plot_9,
-       width = 28,
-       height = 25, 
-       units = "cm", 
-       path = "C:/Users/samue/Desktop/Honours/Chapter_1_lit_review/New_Plots", 
-       dpi = 1000
-)
-
+emf("C:/Users/samue/Desktop/Honours/heatmap_estimator.emf", width = 10, height = 8)  # Set the width and height in inches
+print(plot_9)
+dev.off()
 ## This is a good way to visualise the results but can be a little confusing
 ## Make sure that there is a detailed explanation of how to interpret it in the figure caption
 

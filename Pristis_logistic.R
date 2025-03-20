@@ -240,6 +240,7 @@ AICctab(m1, m2, m3, m4,m5, m6, m7, m8, m9,model_probit, model_cloglog, model_fir
 summary(model_cloglog)
 
 ## Check model assumptions m7
+
 cloglogg_resids <- simulateResiduals(model_cloglog)
 plot(cloglogg_resids)
 
@@ -692,10 +693,12 @@ sawfish_all <- sawfish_all %>%
 
 mean(sawfish_all$TL_mm, na.rm = T)
 sd(sawfish_all$TL_mm, na.rm = T)
+summary(sawfish_all$TL_mm, na.rm = T)
 
 sawfish_all$Sex <- factor(sawfish_all$Sex, levels = c("Unknown", "M", "F"))
 
 table(sawfish_all$Sex)
+
 
 Lengths <- ggplot(sawfish_all, aes(x = TL_mm, y = ..density..)) +
   geom_density(alpha = 0.9, fill = "grey", colour = "black") +
@@ -725,6 +728,18 @@ sawfish_all %>%
     sex_ratio = male_count / female_count
   )
   
+## 2024 SR 
+
+sex_yr <- sawfish_all %>%
+  filter(Rescue_year == "2024") %>%
+  summarise(
+    male_count = sum(Sex == "M", na.rm = TRUE),
+    female_count = sum(Sex == "F", na.rm = TRUE),
+    sex_ratio = male_count / female_count
+  )
+
+sex_yr
+
 
 #position_dodge2(width = 0.9, preserve = "single")
 

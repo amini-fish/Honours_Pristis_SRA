@@ -20,6 +20,30 @@ library(CKMRsim)
 library(dartRverse)
 library(tidyverse)
 library(devEMF)
+library(stats)
+library(jtools)
+library(bbmle)
+library(car)
+library(interactions)
+library(lsmeans)
+library(ggpubr)
+library(dplyr)
+library(caret)
+library(GGally)
+library(DHARMa)
+library(pwr)
+library(WebPower)
+library(simr)
+library(splines)
+library(brglm2)
+library(brms)
+library(mclust)
+library(MASS)     
+library(ggeffects)
+library(ggplot2)
+library(devEMF)
+library(MuMIn)
+library(jtools)
 
 #### Load the data ####
 
@@ -525,7 +549,7 @@ HSU_plot <- HS_UP_linked_gg +
     height = 0.001, 
     fill = NA,
     shape = 21, 
-    size = 3
+    size = 4
   ) +
   scale_fill_brewer(palette = "RdYlGn") +
   scale_colour_manual(values = c("red", "black")) +
@@ -583,7 +607,7 @@ top_HS_HFC <- remaining_pairs %>% # remove the PO pairs
   arrange(desc(HSHFC)) %>%
   filter(HSHFC > -11.5)
 
-top_HS_FC
+top_HS_HFC
 topHS_U
 
 HSFC_fpos <- 4.68e-25
@@ -597,7 +621,7 @@ HSFC_plot <- HS_FC_linked_gg +
     height = 0.001, 
     fill = NA,
     shape = 21, 
-    size = 3
+    size = 4
   ) +
   scale_fill_brewer(palette = "RdYlGn") +
   scale_colour_manual(values = c("red", "black")) +
@@ -620,7 +644,7 @@ print(HSFC_plot)
 dev.off()
 
 remaining_pairs <- remaining_pairs %>%
-  anti_join(bind_rows(topHS_UP), by = c("D2_indiv", "D1_indiv"))
+  anti_join(bind_rows(topHS_U), by = c("D2_indiv", "D1_indiv"))
 
 
 #### Half First Cousins and Unrelated ####
@@ -667,9 +691,9 @@ HFC_U_linked_gg <- Qs_link_BIG %>%
 HFCU_plot <- HFC_U_linked_gg +
   geom_jitter(
     data = remaining_pairs,
-    mapping = aes(x = HFCU, y = -0.002, colour = HFCU > 3.14),
-    width = 0.01, 
-    height = 0.001, 
+    mapping = aes(x = HFCU, y = -0.014, colour = HFCU > 3.14),
+    width = 0, 
+    height = 0.01, 
     fill = NA,
     shape = 21, 
     size = 4
@@ -679,8 +703,8 @@ HFCU_plot <- HFC_U_linked_gg +
   theme_bw() +
   labs(fill = "True Relationship")+
   annotate("text", 
-           x = 130,
-           y = 0.094,  
+           x = 132,
+           y = 0.1,  
            label = paste("FPR:", HFCU_fpos, "\nFNR:", HFCU_fneg), 
            hjust = 0, 
            size = 3, 
@@ -772,11 +796,11 @@ attributes(layout)
 
 kin_network1 <- ggraph::ggraph(network, layout = layout) + 
   ggraph::geom_edge_link( 
-    aes(width = 2,
+    aes(width = kinNWdata$birth_year_diff,
         edge_colour = factor(kinNWdata$rel), 
-        edge_linetype = kinNWdata$same_billabong),
-    edge_alpha = 1) +
-  ggraph::scale_edge_width(range = c(3), breaks = c(0,1,3), name = "Cohort Gap") +
+        edge_linetype = kinNWdata$same_billabong, 
+        edge_alpha = 1))+
+  ggraph::scale_edge_width(range = c(2, 3), breaks = c(0,1, 6), name = "Cohort Gap") +
   ggraph::scale_edge_linetype_manual(values = c("dashed", "solid"), 
                                      name = "Capture Location", 
                                      aesthetics = "edge_linetype") +
@@ -791,7 +815,7 @@ kin_network1 <- ggraph::ggraph(network, layout = layout) +
   ggplot2::scale_color_manual(values = adegenet::funky(9), na.value = "grey50") +
   labs(shape = "Sex") +
   ggplot2::theme_bw() +
-  guides(edge_width = "none") +
+  #guides(edge_width = "none") +
   ggplot2::theme(
     panel.grid = element_blank(), 
     axis.text = element_blank(), 
@@ -806,7 +830,246 @@ print(kin_network1)
 
 ## Save it as an EMF
 
-emf("C:/Users/samue/Desktop/Honours/CKMRsim_Network.emf", width = 10, height = 8)  
+devEMF::emf("C:/Users/samue/Desktop/Honours/CKMRsim_Network.emf", width = 10, height = 8)  
 print(kin_network1)
 dev.off()
 
+#### Permutational Test for differences between sample year and billabong #### 
+
+
+## We need to make a seperate file for all pairwise comparisons with the same format as CKMR_kin
+
+meta <- read.csv("C:/Users/samue/Desktop/Honours/analysis/Daly_meta.csv")
+
+remaining_pairs$rel <- rep("unrelated")
+
+all_pairs <- bind_rows(topFS_U, topHS_U, top_HFC_U, remaining_pairs)
+
+print(all_pairs)
+
+all_pairs <- all_pairs %>%
+  select(D2_indiv, D1_indiv, rel)
+
+colnames(all_pairs) <- c("id_1", "id_2", "rel"); all_pairs
+
+all_pairs2 <- all_pairs %>%
+  left_join(meta, by = c("id_1" = "id")) %>%
+  rename(birth_year_1 = birthyear, billabong_1 = billabong, capture_year1 = Year_caught) %>%
+  left_join(meta, by = c("id_2" = "id")) %>%
+  rename(birth_year_2 = birthyear, billabong_2 = billabong, capture_year2 = Year_caught) %>%
+  mutate(
+    birth_year_diff = abs(birth_year_1 - birth_year_2),  # Absolute age difference
+    Within_Billabong = as.integer(billabong_1 == billabong_2), # returns true false as 1,0
+    Within_Cohort = as.integer(capture_year1 == capture_year2)) %>% #returns true false as 1,0
+  select(id_1, id_2, rel,billabong_1, billabong_2, birth_year_1, birth_year_2, capture_year1, capture_year2, birth_year_diff, Within_Billabong, Within_Cohort) # returns desired metadata
+
+# need to add kin/underlated as 1,0 
+
+all_pairs2$Relatives <- ifelse(all_pairs2$rel == c("unrelated"),
+                                yes = 0, 
+                                no = 1)
+
+
+all_pairs2 <- all_pairs2 %>%
+  mutate(across(c(Within_Billabong, Within_Cohort, Relatives), as.integer))
+
+View(all_pairs2)
+# looks good 
+
+## lets save this for statistical testing 
+
+write.csv(all_pairs2, "CKMRsim_all_pairs.csv")
+
+# Load in parallel package for parallel computing
+
+all_data <- read.csv("C:/Users/samue/Desktop/Honours/analysis/CKMRsim_all_pairs.csv")
+
+library(parallel)
+
+set.seed(42)  # For reproducibility
+
+# Function to calculate the difference in proportions
+calc_diff <- function(data) {
+  within_prop <- mean(data$Relatives[data$Within_Billabong == 1 & data$Within_Cohort == 1])
+  between_prop <- mean(data$Relatives[data$Within_Billabong == 0 | data$Within_Cohort == 0])
+  return(within_prop - between_prop)
+}
+
+# Compute observed difference
+observed_diff <- calc_diff(all_data)
+
+# Number of permutations
+n_perm <- 10000
+n_cores <- detectCores() - 1  # Use all available cores except 1
+
+all_data
+
+cl <- makeCluster(n_cores)
+clusterExport(cl, varlist = c("all_data", "calc_diff"))
+
+# Parallelized permutation function
+permute_function <- function(i, data) {
+  permuted_data <- data  # Work on a copy
+  permuted_data$billabong_1 <- sample(permuted_data$billabong_1)
+  permuted_data$billabong_2 <- sample(permuted_data$billabong_2)
+  permuted_data$capture_year1 <- sample(permuted_data$capture_year1)
+  permuted_data$capture_year2 <- sample(permuted_data$capture_year2)
+  
+  # Recalculate within-billabong and within-cohort
+  permuted_data$Within_Billabong <- as.integer(permuted_data$billabong_1 == permuted_data$billabong_2)
+  permuted_data$Within_Cohort <- as.integer(permuted_data$capture_year1 == permuted_data$capture_year2)
+  
+  calc_diff(permuted_data)
+}
+
+# Run parallel permutations with data explicitly passed
+perm_diffs <- parSapply(cl, 1:n_perm, permute_function, data = all_data)
+# Run permutations in parallel
+
+stopCluster(cl)  # Stop the cluster when done
+
+# Compute p-value
+p_value <- mean(perm_diffs >= observed_diff)
+
+# Results
+cat("Observed Difference:", observed_diff, "\n")
+cat("P-value:", p_value, "\n")
+
+# Convert permuted differences to a dataframe for plotting
+perm_diffs_df <- data.frame(perm_diffs)
+
+# Create the plot
+ggplot(perm_diffs_df, aes(x = perm_diffs)) +
+  geom_histogram(binwidth = 0.01, fill = "lightblue", color = "black", alpha = 0.7) +  # Histogram of permutations
+  geom_vline(aes(xintercept = observed_diff), color = "red", linetype = "dashed", size = 1) +  # Observed difference
+  labs(
+    title = "Permutation Test: Observed vs. Null Distribution",
+    x = "Difference in Kinship Proportions (Within - Between)",
+    y = "Frequency"
+  ) +
+  theme_minimal()
+
+ggplot(perm_diffs_df, aes(x = perm_diffs)) +
+  geom_density(fill = "lightblue", alpha = 0.5) +
+  geom_vline(aes(xintercept = observed_diff), color = "red", linetype = "dashed", size = 1) +
+  labs(
+    title = "Permutation Test Density Plot",
+    x = "Difference in Kinship Proportions",
+    y = "Density"
+  ) +
+  theme_minimal()
+
+
+#### GLMM ##### 
+
+library(lme4)
+
+glimpse(all_data)
+
+# Fit GLMM model
+glmm_model <- glmer(Relatives ~ Within_Billabong + Within_Cohort + 
+                      (1 | id_1) + (1 | id_2), 
+                    data = all_data,
+                    family = binomial, 
+                    control = glmerControl(optimizer = "bobyqa"))
+
+summary(glmm_model)
+
+all_data$predicted <- predict(glmm_model, type = "response")
+
+library(ggplot2)
+
+# Visualizing predicted probabilities based on Within_Billabong and Within_Cohort
+glmm_plot <- ggplot(all_data, aes(x = factor(Within_Billabong), y = predicted, color = factor(Within_Cohort))) +
+  geom_jitter(width = 0.2, alpha = 0.6, size = 4) + 
+  stat_smooth(method = "glm", method.args = list(family = binomial), se = FALSE) +
+  labs(x = "Same Location", y = "Predicted Probability of Kinship", color = "Same Cohort") +
+  theme_bw() +
+  scale_colour_manual(values = c("darkolivegreen2", "grey")) + 
+  theme(legend.position = "top")
+
+print(glmm_plot)
+#### Troubleshooting ####
+ggplot(all_data, aes(x = Within_Billabong, y = Within_Cohort, color = Relatives)) + 
+  geom_jitter(size = 3) + 
+  labs(title = "Pairwise Relationships")
+
+# Correlation matrix
+cor(all_data[, c("Within_Billabong", "Within_Cohort", "birth_year_diff")])
+
+
+## Try with interaction term 
+
+glmer_model_interaction <- glmer(Relatives ~ Within_Billabong * Within_Cohort + 
+                                   (1 | id_1) + (1 | id_2), 
+                                 data = all_data, family = binomial)
+summary(glmer_model_interaction)
+
+
+AICctab(glmm_model, glmer_model_interaction)
+
+emf("C:/Users/samue/Desktop/Honours/Daly_ENV/kinship_glmm.emf", width = 10, height = 8)  # Set the width and height in inches
+print(glmm_plot)
+dev.off()
+
+
+## Using ggpredict 
+
+preds <- ggpredict(glmm_model, terms = c("Within_Billabong", "Within_Cohort"), bias_correction = T, type = "fixed", back.transform = FALSE)
+glimpse(preds)
+
+preds$odds <- exp(preds$predicted)
+preds$odds_low <- exp(preds$conf.low)
+preds$odds_high <- exp(preds$conf.high)
+
+# Plotting odds
+glmm_plot2 <- ggplot(preds, aes(x = x, y = odds, color = group)) +
+  geom_point(size = 4.5) +
+  geom_line(size = 1.5) +
+  geom_ribbon(aes(ymin = odds_low, ymax = odds_high, fill = group), alpha = 0.2, color = NA) +
+  scale_y_log10() +  # Plot odds on log10 scale
+  labs(
+    x = "Within Billabong (0 = no, 1 = yes)",
+    y = "Odds of Being Relatives (log10 scale)",
+    color = "Within Cohort",
+    fill = "Within Cohort"
+  ) +
+  scale_colour_manual(values = c("darkolivegreen2", "grey")) + 
+  scale_fill_manual(values = c("darkolivegreen3", "grey")) + 
+  scale_x_continuous(breaks = c(0, 1)) +
+  theme_bw() +
+  theme(axis.title = element_text(size = 14), 
+        legend.position = "top")
+
+
+print(glmm_plot2)
+
+emf("C:/Users/samue/Desktop/Honours/Daly_ENV/kinship_glmm_2.emf", width = 10, height = 8)  # Set the width and height in inches
+print(glmm_plot2)
+dev.off()
+
+## Updated plot 
+library(ggplot2)
+
+# Plot with jittered empirical points and predicted odds
+ggplot() +
+  # Jitter the empirical data points
+  geom_jitter(data = all_data, 
+              aes(x = Within_Billabong, y = Relatives, color = as.factor(Within_Cohort)), 
+              width = 0.1, height = 0.1, alpha = 0.6, size = 3) +
+  
+  # Add predicted odds from the model
+  geom_line(data = preds, aes(x = x, y = odds, color = group), size = 1) +
+  geom_ribbon(data = preds, aes(x = x, ymin = odds_low, ymax = odds_high, fill = group), alpha = 0.2) +
+  
+  # Customize the plot
+  labs(
+    x = "Within Billabong (0 = no, 1 = yes)",
+    y = "Predicted Odds of Being Relatives",
+    color = "Within Cohort",
+    fill = "Within Cohort"
+  ) +
+  theme_minimal() +
+  scale_y_log10() +  # Log10 scale for the odds
+  scale_x_continuous(breaks = c(0, 1)) +  # Set x-axis breaks to 0 and 1
+  theme(legend.position = "top")
