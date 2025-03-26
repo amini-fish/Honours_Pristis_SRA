@@ -1,0 +1,296 @@
+---
+title: 'Supplementary Materials: A review of the utility and application of relatedness
+  and kinship in elasmobranchs'
+author: "Sam Amini"
+date: "2025-03-25"
+mainfont: Times New Roman
+output:
+  html_document: default
+  pdf_document: default
+---
+
+## Figure S1
+
+```{r Supplementary Figure 1, echo = FALSE, out.width="100%", fig.cap="Figure S1", fig.dim = c(12, 10)}
+library(dplyr)
+library(ggplot2)
+library(tidyr)
+library(ggpubr)
+
+setwd("C:/Users/samue/Desktop/Honours/Chapter_1_lit_review/Metadata")
+
+data <- read.csv("C:/Users/samue/Desktop/Honours/Chapter_1_lit_review/Metadata/relatedness_literature_review_working2.csv", stringsAsFactors = T)
+
+data <- data %>% 
+  filter(Index == "Keep")%>%
+  droplevels()
+
+data_2 <- read.csv("relatedness_literature_review_working3.csv", stringsAsFactors = T)
+
+status_all <- data %>%
+  group_by(IUCN.Status) %>%
+  summarise(Count = n(), .groups = 'drop') %>%
+  mutate(Percentage = (Count / sum(Count)) * 100,
+         CumulativePercentage = cumsum(Percentage),
+         Start = lag(CumulativePercentage, default = 0)) %>%
+  ungroup()
+
+status_all$IUCN.Status <- factor(status_all$IUCN.Status, levels = c("Data deficient","Least Concern", "Near Threatened", "Vulnerable", "Endangered", "Critically Endangered"))
+
+status_all$IUCN.Status <- recode_factor(status_all$IUCN.Status, "Data deficient" = "DD","Least Concern" = "LC", "Near Threatened" = "NT", "Vulnerable" = "VU", "Endangered" = "EN", "Critically Endangered" = "CR")
+
+IUCN_supps_plot2 <- ggplot(data = status_all, aes(x = 2, y = Percentage, fill = IUCN.Status)) +
+  geom_bar(stat = "identity", width = 1, colour = "black") +
+  coord_polar(theta="y") +
+  xlim(0, 2.5) +
+  theme_bw() +
+  
+  scale_fill_manual(values = c('grey',  'green',"#ADFF2F", 'yellow', 'orange', "red")) 
+
+
+IUCN_supps_plot2 <- IUCN_supps_plot2 + theme(legend.position = "bottom", 
+                                           panel.grid.major = element_blank(), 
+                                           panel.grid.minor = element_blank(), 
+                                           strip.text = element_text(size = 10.5),
+                                           axis.text = element_blank(), 
+                                           axis.ticks = element_blank(),
+                                           axis.title = element_blank(),
+                                           axis.title.y = element_blank(),
+                                           plot.margin = unit(c(1,1,1,1), "cm"), 
+                                           panel.border = element_blank(), 
+                                           legend.text = element_text(size = 10), 
+                                           legend.title = element_text(size = 10.5)) +
+  guides(fill = guide_legend(title = "IUCN Status"))
+
+status <- data_2 %>%
+  group_by(IUCN.Status, Focus) %>%
+  summarise(Count = n(), .groups = 'drop') %>%
+  group_by(Focus) %>%
+  mutate(Percentage = (Count / sum(Count)) * 100,
+         CumulativePercentage = cumsum(Percentage),
+         Start = lag(CumulativePercentage, default = 0)) %>%
+  ungroup()
+#check the data
+
+status$Focus <- recode_factor(status$Focus, 
+                              "Popgen" = "Population Genetics", 
+                              "Social" = "Social Behaviour", 
+                              "Reproduction" = "Reproductive Behaviour")
+
+status$Focus <- factor(status$Focus, levels = c("Reproductive Behaviour", 
+                                                "Population Genetics", 
+                                                "Demography", 
+                                                "Social Behaviour"))
+
+
+status$IUCN.Status <- factor(status$IUCN.Status, levels = c("Data deficient",
+                                                            "Least Concern", 
+                                                            "Near Threatened",
+                                                            "Vulnerable",
+                                                            "Endangered",
+                                                            "Critically Endangered"))
+
+
+IUCN_supps_plot <- ggplot(data = status, aes(x = 2, y = Percentage, fill = IUCN.Status)) +
+  geom_bar(stat = "identity", width = 1, colour = "black") +
+  coord_polar(theta="y") +
+  facet_wrap( ~ Focus) +
+  xlim(0, 2.5) +
+  theme_bw() +
+  scale_fill_manual(values = c('grey',  'green',"#ADFF2F", 'yellow', 'orange', "red")) 
+
+
+IUCN_supps_plot <- IUCN_supps_plot + theme(legend.position = "bottom", 
+                                           panel.grid.major = element_blank(), 
+                                           panel.grid.minor = element_blank(), 
+                                           strip.text = element_text(size = 10.5),
+                                           axis.text = element_blank(), 
+                                           axis.ticks = element_blank(),
+                                           axis.title = element_blank(),
+                                           axis.title.y = element_blank(),
+                                           plot.margin = unit(c(1,1,1,1), "cm")) + guides(fill = F)
+
+
+ggarrange(IUCN_supps_plot2, IUCN_supps_plot,
+              labels = c("A", "B"),
+              common.legend = F,
+              ncol = 2, nrow = 1)
+
+```
+Supplementary Figure 1. A) The IUCN Status of species in each study examining relatedness in elasmobranchs. B) The IUCN status of each species, grouped by study category. In clockwise order starting from the top left these are: reproductive behaviour, population genetics, sociality, and demography.
+
+## Figure S2
+
+```{r Supplementary Figure 2, echo = FALSE, out.width="100%", fig.dim = c(10, 10)}
+
+library(dplyr)
+library(ggplot2)
+library(ggpubr)
+library(tidyr)
+library(reshape2)
+
+setwd("C:/Users/samue/Desktop/Honours/Chapter_1_lit_review/Metadata")
+
+data <- read.csv("relatedness_literature_review_working2.csv", stringsAsFactors = T)
+
+data <- data %>% 
+  filter(Index == "Keep")%>%
+  droplevels()
+
+data_2 <- read.csv("relatedness_literature_review_working3.csv", stringsAsFactors = T)
+
+estimator <- data %>% 
+  group_by(Kinship.Method)%>%
+  count(Kinship.Method, sort= T)
+
+estimator$Kinship.Method <- as.character(estimator$Kinship.Method)
+
+estimator <- estimator %>%
+  mutate(Kinship.Method = strsplit(Kinship.Method, " \\+ ")) %>% 
+  unnest(Kinship.Method) %>%
+  group_by(Kinship.Method) %>%
+  summarise(n = sum(n), .groups = "drop")%>%
+  arrange(desc(n))
+
+estimator$Kinship.Method <- recode_factor(estimator$Kinship.Method, "CERVUS " = "CERVUS", "Allele counts  " = "Allele counts", "CKMRsim " = "CKMRsim", "KinGroup  " = "KinGroup", "Sequioa " = "Sequoia", "Cervus" = "CERVUS")
+
+# Now, after some more visual checks we're confident we have removed any typos we can transform and count our estimator use properly
+
+estimator$Kinship.Method <- as.character(estimator$Kinship.Method)
+
+
+# Load it in from Lit review ALL line 281 to 287
+
+# Example data
+
+data$Kinship.Method <- recode_factor(data$Kinship.Method, "Allele counts  " = "Allele counts", "GERUD & COLONY " = "GERUD + COLONY", "COLONY + CERVUS" = "COLONY + CERVUS", "Allele counts & GERUD 1" = "Allele counts + GERUD", "Allele counts & GERUD 2.0" = "Allele counts + GERUD", "GERUD 2.0" = "GERUD", "GERUD 2.0 & COLONY" = "GERUD + COLONY", "Allele counts, GERUD 2.0 & COLONY2" = "Allele counts + GERUD 2.0 + COLONY", "IR Values & KINSHIP 1.3" = "Kinship 1.3", "Kinship 1.3 + Cervus 2.0 " = "Kinship 1.3 + Cervus", "GERUD 1.0, COLONY, STORM & allele counts" = "Allele counts + COLONY + GERUD + STORM", "GERUD 2.0, CERVUS 3.0.7 and COLONY" = "CERVUS + COLONY + GERUD", "Allele counts, GERUD 2.0, COLONY" = "Allele counts + COLONY + GERUD", "GERUD & COLONY" = "COLONY + GERUD", "Allele counts, GERUD 2.0 & COLONY" = "Allele counts + COLONY + GERUD", "Sequoia, COLONY, dartR*" = "COLONY + dartR + Sequoia", "KINFERENCE" = "Kinference", "COLONY2" = "COLONY", "COLONY v.2." = "COLONY", "MLRELATE, COLONY v1.2, KINGROUP 1" = "ML-Relate + COLONY + KinGroup", "KinGroup  " = "KinGroup", "Allele Counts + COLONY + GERUD" = "Allele counts + COLONY + GERUD", "Coancestry + COLONY+ CERVUS " = "Coancestry + COLONY + CERVUS", "Allele Counts" = "Allele counts", "COLONY & CERVUS" = "COLONY + CERVUS", "Kinship 1.3 & Cervus" = "Kinship 1.3 + Cervus", "CKMRsim " = "CKMRsim", "CERVUS " = "CERVUS", "Coancestry" = "COANCESTRY")
+
+
+## Can add in Focus to get specific groupings, or could try tapply and use as grouping factor
+
+estimator <- data %>% 
+  group_by(Kinship.Method)%>%
+  count(Kinship.Method, sort= T)
+
+# Extract unique items
+unique_items <- unique(unlist(strsplit(paste(estimator$Kinship.Method, collapse = " + "), " \\+ ")))
+
+# Initialize matrix
+matrix <- matrix(0, nrow = length(unique_items), ncol = length(unique_items),
+                 dimnames = list(unique_items, unique_items))
+
+
+estimator$Kinship.Method <- as.character(estimator$Kinship.Method)
+
+# Populate the matrix
+for (i in 1:nrow(estimator)) {
+  items <- unlist(strsplit(estimator$Kinship.Method[i], " \\+ "))
+  freq <- estimator$n[i]
+  
+  if (length(items) == 1) {
+    # Single factor: Add to diagonal
+    matrix[items, items] <- matrix[items, items] + freq
+  } else {
+    # Combinations: Add to pairwise cells
+    for (j in 1:(length(items) - 1)) {
+      for (k in (j + 1):length(items)) {
+        matrix[items[j], items[k]] <- matrix[items[j], items[k]] + freq
+        matrix[items[k], items[j]] <- matrix[items[k], items[j]] + freq # Symmetric
+      }
+    }
+  }
+}
+
+# Convert matrix to data frame for ggplot
+rownames(matrix) <- gsub("CERVUS ", "CERVUS", rownames(matrix))
+colnames(matrix) <- gsub("CERVUS ", "CERVUS", colnames(matrix))
+rownames(matrix) <- gsub("Coancestry", "COANCESTRY", rownames(matrix))
+colnames(matrix) <- gsub("Coancestry", "COANCESTRY", colnames(matrix))
+
+
+matrix_df <- melt(matrix)
+
+matrix_df <- matrix_df %>%
+  group_by(Var1, Var2) %>%
+  summarise(value = sum(value, na.rm = TRUE), .groups = "drop")
+
+## Recode the dodgy names
+
+# Plot heatmap
+plot_9 <- ggplot(matrix_df, aes(factor(Var1), factor(Var2), fill = value)) +
+  geom_tile(color = "white", alpha = 0.8, width = 1, height = 1) +
+  geom_text(aes(label = round(value, 1)), color = "black") +
+  scale_fill_gradient(low = "white", high = "#33FF33", na.value = "white") +
+  labs(x = "", y = "", fill = "Frequency") +
+  theme_bw()
+
+plot_9 <- plot_9 +
+  theme(
+    panel.grid.major = element_blank(), 
+              panel.grid.minor = element_blank(), 
+    legend.text = element_text(size = 10),
+    legend.title = element_text(size = 10),
+              axis.text = element_text(size = 10), 
+              axis.title = element_text(size = 10), 
+        text = element_text(size = 8),
+              axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1),
+              axis.title.y = element_text(margin = margin(0,15,0,0)), 
+              plot.margin = unit(c(1,1,1,1), "cm"))
+
+print(plot_9)
+```
+
+Supplementary Figure 2. A heatmap of estimators used across all studies, visualised as pairwise combinations. Self-comparisons represent the number of times an estimator was used in isolation.
+
+
+## Figure S3
+
+```{r Supplementary Figure 3, echo = FALSE, out.width="100%", fig.dim = c(12, 12)}
+
+library(dplyr)
+library(ggplot2)
+library(ggpubr)
+library(tidyr)
+
+setwd("C:/Users/samue/Desktop/Honours/Chapter_1_lit_review/Metadata")
+
+data <- read.csv("relatedness_literature_review_working2.csv", stringsAsFactors = T)
+
+data <- data %>% 
+  filter(Index == "Keep")%>%
+  droplevels()
+
+data_2 <- read.csv("relatedness_literature_review_working3.csv", stringsAsFactors = T)
+
+sample_size <- data_2 %>%
+  select(n_samples, Focus)
+
+sample_size$Focus <- recode_factor(sample_size$Focus, "Popgen" = "Population Genetics", "Social" = "Sociality")
+
+sample_size$Focus <- factor(sample_size$Focus, levels = c("Reproduction", "Population Genetics", "Demography", "Sociality"))
+
+sample_size$log_n <- log(sample_size$n_samples)
+
+supp2 <- ggboxplot(sample_size,
+          x = "Focus", 
+          y = "n_samples", 
+          fill = "Focus", 
+          ylab = "No. Samples",
+          palette = "Spectral") +
+  theme_bw()
+
+supp2 <- supp2 + 
+  theme(legend.position = "bottom", 
+        panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(), 
+        axis.text = element_text(size = 12), 
+        axis.title = element_text(size = 12), 
+        axis.title.y = element_text(margin = margin(0,15,0,0)), 
+        plot.margin = unit(c(1,1,1,1), "cm")) +
+  guides(size = FALSE, fill = FALSE)
+
+print(supp2)
+
+```
+
+Figure S3. A boxplot of the number of samples used in each research category, where the box denotes the inter-quartile range, and solid line denotes the median, and dots represent outlier values. 
