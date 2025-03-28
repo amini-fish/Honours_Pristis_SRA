@@ -1010,7 +1010,7 @@ plot <- ggplot(estimator, aes(x = Kinship.Method, y = Total_Frequency, fill = Ca
 
 print(plot)
 
-?scale_fill_viridis
 ## Without facet
 
 library(ggpubr)
+

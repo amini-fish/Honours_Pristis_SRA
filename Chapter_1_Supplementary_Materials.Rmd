@@ -5,11 +5,21 @@ author: "Sam Amini"
 date: "2025-03-25"
 mainfont: Times New Roman
 output:
-  html_document: default
   pdf_document: default
+  html_document: default
 ---
 
-## Figure S1
+```{r setup, include = F}
+
+knitr::opts_chunk$set(echo = F,
+                      results = "hide", 
+                      error = F,
+                      message = F, 
+                      warning = F)
+
+```
+
+## Supplementary Figure 1
 
 ```{r Supplementary Figure 1, echo = FALSE, out.width="100%", fig.cap="Figure S1", fig.dim = c(12, 10)}
 library(dplyr)
@@ -119,7 +129,7 @@ ggarrange(IUCN_supps_plot2, IUCN_supps_plot,
 ```
 Supplementary Figure 1. A) The IUCN Status of species in each study examining relatedness in elasmobranchs. B) The IUCN status of each species, grouped by study category. In clockwise order starting from the top left these are: reproductive behaviour, population genetics, sociality, and demography.
 
-## Figure S2
+## Supplementary Figure 2
 
 ```{r Supplementary Figure 2, echo = FALSE, out.width="100%", fig.dim = c(10, 10)}
 
@@ -243,7 +253,7 @@ print(plot_9)
 Supplementary Figure 2. A heatmap of estimators used across all studies, visualised as pairwise combinations. Self-comparisons represent the number of times an estimator was used in isolation.
 
 
-## Figure S3
+## Supplementary Figure 3
 
 ```{r Supplementary Figure 3, echo = FALSE, out.width="100%", fig.dim = c(12, 12)}
 
@@ -293,4 +303,4 @@ print(supp2)
 
 ```
 
-Figure S3. A boxplot of the number of samples used in each research category, where the box denotes the inter-quartile range, and solid line denotes the median, and dots represent outlier values. 
+Figure S3. A boxplot of the number of samples used in each research category, where the box denotes the inter-quartile range, and solid line denotes the median, and dots represent outliers. 

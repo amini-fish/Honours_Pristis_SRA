@@ -883,45 +883,6 @@ cons_data
 
 cons_data$IUCN.Status <- factor(cons_data$IUCN.Status, levels = c("Data deficient", "Least Concern", "Near Threatened", "Vulnerable", "Endangered", "Critically Endangered"))
 
-
-plot_14 <- ggdotchart(cons_data, x = "IUCN.Status", y = "n",
-                      color = "IUCN.Status",
-                      palette = c('grey', 'green', 'lightgreen', 'yellow',  'orange', "red"),
-                      title = "Number of studies on elasmobranchs by IUCN Status",
-                      ylab = "Number of studies",# Sort value in descending order
-                      rotate = F,  
-                      sorting = "none",
-                      add = "segments",
-                      dot.size = 8,
-                      label = round(cons_data$n,1), 
-                      font.label = list(color = "black", size = 9, 
-                                        vjust = 0.5), # Color y text by groups
-                      ggtheme = theme_pubr()                        # ggplot2 theme
-)
-
-plot_14 <- plot_14 + theme(legend.position = "bottom", 
-                         plot.title = element_text(hjust = 0.5, size = 16, margin = margin(10,0,10,0)), 
-                         panel.grid.major = element_blank(), 
-                         panel.grid.minor = element_blank(), 
-                         axis.text = element_text(size = 12), 
-                         axis.title = element_text(size = 14),
-                         axis.title.y = element_text(margin = margin(0,10,0,0), angle = 90), 
-                         plot.margin = unit(c(0.5,1,1,0.5), "cm"), 
-                         panel.background = element_rect(colour = "black", linewidth = 0.5)) +
-  guides(colour = guide_legend(override.aes = list(size = 3), title = "IUCN"))
-
-print(plot_14)
-
-ggsave("plot_14.tiff",
-       plot = plot_14,
-       width = 30,
-       height = 25, 
-       units = "cm", 
-       path = "C:/Users/samue/Desktop/Honours/Chapter_1_lit_review/New_Plots", 
-       dpi = 600
-)
-
-
 ## Categories of relatendess studies
 
 
@@ -1047,41 +1008,33 @@ focus_cum$Focus <- recode_factor(focus_cum$Focus, "Popgen" = "Population Genetic
 
 focus_cum$Focus <- factor(focus_cum$Focus, levels = c("Reproduction", "Population Genetics", "Demography", "Sociality"))
 
-cumplot_1 <- ggline(data = focus_cum, 
-       x = "Year",
-       y = "cumulative_count",
-       color = "Focus",
-       group = "Focus", 
-       plot_type = "l", 
-       palette = "Spectral",
-       size = 1,
-       ggtheme = theme_bw()) +
+cumplot_1 <- ggplot(data = focus_cum, aes(x = Year, y = cumulative_count, color = Focus, group = Focus)) +
+  geom_line(size = 1) +
+  scale_color_brewer(palette = "Spectral") +
+  theme_bw() +
   labs(
     x = "Year",
     y = "Number of studies",
-    color = "Focus") 
-  
-
-cumplot_1 <- cumplot_1 + theme(legend.position = "bottom", 
-                               panel.grid.major = element_blank(), 
-                               panel.grid.minor = element_blank(), 
-                               axis.text = element_text(size = 12), 
-                               axis.title = element_text(size = 12), 
-                               axis.title.y = element_text(margin = margin(0,15,0,0)), 
-                               plot.margin = unit(c(1,1,1,1), "cm")) +
-  guides(colour = guide_legend(override.aes = list(size = 3), nrow = 1))
-
+    color = "Focus"
+  ) +
+  scale_y_continuous(breaks = seq(0, max(focus_cum$cumulative_count), by = 10))+
+  theme(
+    legend.position = "bottom",
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    axis.text = element_text(size = 12),
+    axis.title = element_text(size = 12),
+    axis.title.y = element_text(margin = margin(0, 15, 0, 0)),
+    plot.margin = margin(1, 1, 1, 1, "cm")
+  ) +
+  guides(color = guide_legend(override.aes = list(size = 3), nrow = 1)) +
+  geom_vline(xintercept = 2015, linetype = "dashed", size = 1) +
+  annotate("text", x = 2016, y = 50, 
+           label = "Genomics Era", angle = 90, vjust = -0.5, size = 5)
 
 print(cumplot_1)
 
-ggsave("cumplot_1.tiff",
-       plot = cumplot_1,
-       width = 28,
-       height = 28, 
-       units = "cm", 
-       path = "C:/Users/samue/Desktop/Honours/Chapter_1_lit_review/New_Plots", 
-       dpi = 1000
-)
+
 
 ## PLOT CUMULATIVE COUNT BY MARKER
 
