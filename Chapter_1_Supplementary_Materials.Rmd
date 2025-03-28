@@ -1,12 +1,12 @@
 ---
 title: 'Supplementary Materials: A review of the utility and application of relatedness
   and kinship in elasmobranchs'
-author: "Sam Amini"
+author: "Samuel R. Amini*, Nicole M. Phillips, Pierre Feutry, Peter M. Kyne"
 date: "2025-03-25"
-mainfont: Times New Roman
 output:
-  pdf_document: default
   html_document: default
+  pdf_document: default
+fontsize: 12pt
 ---
 
 ```{r setup, include = F}
@@ -16,6 +16,7 @@ knitr::opts_chunk$set(echo = F,
                       error = F,
                       message = F, 
                       warning = F)
+
 
 ```
 
@@ -127,7 +128,8 @@ ggarrange(IUCN_supps_plot2, IUCN_supps_plot,
               ncol = 2, nrow = 1)
 
 ```
-Supplementary Figure 1. A) The IUCN Status of species in each study examining relatedness in elasmobranchs. B) The IUCN status of each species, grouped by study category. In clockwise order starting from the top left these are: reproductive behaviour, population genetics, sociality, and demography.
+
+Figure S1. A) The IUCN Status of species in each study examining relatedness in elasmobranchs. B) The IUCN status of each species, grouped by study category. In clockwise order starting from the top left these are: reproductive behaviour, population genetics, sociality, and demography.
 
 ## Supplementary Figure 2
 
@@ -250,7 +252,7 @@ plot_9 <- plot_9 +
 print(plot_9)
 ```
 
-Supplementary Figure 2. A heatmap of estimators used across all studies, visualised as pairwise combinations. Self-comparisons represent the number of times an estimator was used in isolation.
+Figure S2. A heatmap of estimators used across all studies, visualised as pairwise combinations. Self-comparisons represent the number of times an estimator was used in isolation.
 
 
 ## Supplementary Figure 3
