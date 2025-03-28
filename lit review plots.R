@@ -3,6 +3,7 @@
 install.packages("ggpubr")
 install.packages("gt")
 install.packages("gtExtras")
+install.packages("wesanderson")
 
 if (!requireNamespace("ggplot2")) install.packages("ggplot2")
 if (!requireNamespace("reshape2")) install.packages("reshape2")
@@ -17,6 +18,8 @@ require(cowplot)
 require(gt)
 require(gtExtras)
 library(devEMF)
+library(wesanderson)
+
 
 ## Load in the data - review2 is for general taxon + numbers 
 
@@ -58,56 +61,25 @@ tab_1 <- data %>%
   count(Order, sort = F)%>%
   print(n = 50)
 
-# plot iOrder# plot it 
-tab_1
+#### PLOTS #### 
 
-plot_1 <- ggdotchart(tab_1, x = "Family", y = "n", 
-           color = "Order", 
-           ylab = "Number of studies",
-           palette = "Spectral",
-           sorting = "descending",
-           add = "segments", 
-           rotate = T, 
-           group = "Order", 
-           dot.size = 10, 
-           label = round(tab_1$n,1),                        # Add mpg values as dot labels
-           font.label = list(color = "black", size = 9, 
-                             vjust = 0.5),           # Adjust label parameters
-           ggtheme = theme_bw()                        # ggplot2 theme
-)+
-  geom_hline(yintercept = 0, linetype = 2, color = "lightgray") 
+#### Taxonomic Coverage ####
 
-plot_1 <- plot_1 + theme(legend.position = "bottom", 
-               panel.grid.major = element_blank(), 
-               panel.grid.minor = element_blank(), 
-               axis.text = element_text(size = 12), 
-               axis.title = element_text(size = 12), 
-               axis.title.y = element_text(margin = margin(0,15,0,0)), 
-               plot.margin = unit(c(1,1,1,1), "cm")) +
-  guides(colour = guide_legend(override.aes = list(size = 3), nrow = 3))
+## Define colour palette 
 
-print(plot_1)
+zissou_colors <- wes_palette("Zissou1", type = "continuous", n = length(unique(tab_1$Order)))
 
-ggsave("plot_1.tiff",
-       plot = plot_1,
-       width = 28,
-       height = 25, 
-       units = "cm", 
-       path = "C:/Users/samue/Desktop/Honours/Chapter_1_lit_review/New_Plots", 
-       dpi = 1000
-)
+#### ALL PLOT ####
 
-
-## try this instead
 plot_2 <- ggdotchart(tab_1, x = "Family", y = "n",
            color = "Order", # Custom color palette
-           sorting = "Descending", 
-           palette = "Spectral",
-           ylab = "Number of studies",# Sort value in descending order
-           rotate = TRUE,                                # Rotate vertically
-           dot.size = 10,
+           sorting = "descending", 
+           palette = zissou_colors,
+           ylab = "Number of studies", # Sort value in descending order
+           rotate = TRUE, 
+           dot.size = 7,
            label = round(tab_1$n,1), 
-           font.label = list(color = "black", size = 9, 
+           font.label = list(color = "black", size = 8, 
                              vjust = 0.5), # Color y text by groups
            ggtheme = theme_pubr()                        # ggplot2 theme
 )+
@@ -116,31 +88,16 @@ plot_2 <- ggdotchart(tab_1, x = "Family", y = "n",
 plot_2 <- plot_2 + theme(legend.position = "bottom", 
                          panel.grid.major = element_blank(), 
                          panel.grid.minor = element_blank(), 
-                         axis.text = element_text(size = 12), 
-                         axis.title = element_text(size = 12), 
+                         axis.text = element_text(size = 10), 
+                         axis.title = element_text(size = 10), 
                          axis.title.y = element_text(angle= 90, margin = margin(0,15,0,0)), 
                          plot.margin = unit(c(1,1,1,1), "cm"), 
                          panel.background = element_rect(colour = "black", linewidth = 0.5)) +
-  guides(colour = guide_legend(override.aes = list(size = 3), nrow = 3))
+  guides(colour = guide_legend(override.aes = list(size = 3), nrow = 2))
 
 print(plot_2)
 
-ggsave("plot_2.tiff",
-       plot = plot_2,
-       width = 28,
-       height = 25, 
-       units = "cm", 
-       path = "C:/Users/samue/Desktop/Honours/Chapter_1_lit_review", 
-       dpi = 1000
-)
-
-
-# IDEA - add silhouette of body plans per order to contextualise? 
-  # will need to do that in post
-
-## Okay I think that between these I could make somthing work 
-
-# FOCUS AREAS - we need review3 data 
+#### Category Plot ####
 
 data2 <- read.csv("relatedness_literature_review_working3.csv", stringsAsFactors = T)
 
@@ -155,22 +112,22 @@ tab_2 <- data2 %>%
 
 tab_2
 
-tab_2$Focus <- recode_factor(tab_2$Focus, "Popgen" = "Population Genetics", "Social" = "Sociality")
+tab_2$Focus <- recode_factor(tab_2$Focus, "Popgen" = "Population Genetics", "Social" = "Social Behaviour", "Reproduction" = "Reproductive Behaviour")
 
-tab_2$Focus <- factor(tab_2$Focus, levels = c("Reproduction", "Population Genetics", "Demography", "Sociality"))
+tab_2$Focus <- factor(tab_2$Focus, levels = c("Reproductive Behaviour", "Population Genetics", "Demography", "Social Behaviour"))
 
 
 plot_3 <- ggdotchart(tab_2, x = "Family", y = "n",
                      color = "Order",
                      group = "Order",
                      facet.by = "Focus", 
-                     palette = "Spectral",
+                     palette = zissou_colors,
                      sorting = "descending",
                      ylab = "Number of studies",
                      rotate = T,
-                     dot.size = 6,
+                     dot.size = 5,
                      label = round(tab_2$n,1), 
-                     font.label = list(color = "black", size = 10, 
+                     font.label = list(color = "black", size = 8, 
                                        vjust = 0.5), # Color y text by groups
                      ggtheme = theme_bw()                   
 ) + 
@@ -180,8 +137,8 @@ plot_3 <- ggdotchart(tab_2, x = "Family", y = "n",
 plot_3 <- plot_3 + theme(legend.position = "bottom", 
                panel.grid.major = element_blank(), 
                panel.grid.minor = element_blank(), 
-               axis.text = element_text(size = 12), 
-               axis.title = element_text(size = 12), 
+               axis.text = element_text(size = 10), 
+               axis.title = element_text(size = 10), 
                axis.title.y = element_text(margin = margin(0,10,0,0), angle = 90), 
                axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1),
                strip.text = element_text(size = 11),
@@ -190,35 +147,21 @@ plot_3 <- plot_3 + theme(legend.position = "bottom",
 
 print(plot_3)
 
-ggsave("plot_3.tiff",
-       plot = plot_3,
-       width = 28,
-       height = 25,
-       units = "cm", 
-       path = "C:/Users/samue/Desktop/Honours/Chapter_1_lit_review/New_Plots", 
-       dpi = 1000
-)
-
 ## Merge plot 2 and 3 
 
-studies_family <- plot_grid(plot_2, plot_3, ncol = 2)
+taxa_all <- ggarrange(plot_2, plot_3,
+          labels = c("A", "B"),
+          legend = "bottom",
+          common.legend = T,
+          ncol = 2, nrow = 1)
 
+taxa_all
 
-studies_family
-
-ggsave("family.tiff",
-       plot = studies_family,
-       width = 40,
-       height = 25,
-       units = "cm", 
-       path = "C:/Users/samue/Desktop/Honours/Chapter_1_lit_review/New_Plots", 
-       dpi = 1000
-)
-
+emf("C:/Users/samue/Desktop/Honours/Chapter_1_lit_review/taxa_all_studies.emf", width = 14, height = 11)  # Set the width and height in inches
+print(taxa_all)
+dev.off()
 
 ## Now lets look at the markers used (i.e. the distribution between msats and SNPs)
-
-View(data2)
 
 tab_4 <- data2 %>%
   group_by(Markers, Focus) %>%
@@ -230,30 +173,29 @@ tab_4$Focus <- recode_factor(tab_4$Focus, "Popgen" = "Population Genetics", "Soc
 
 tab_4$Focus <- factor(tab_4$Focus, levels = c("Reproduction", "Population Genetics", "Demography", "Sociality"))
 
-plot_4 <- ggbarplot(tab_4, x = "Markers", y = "n",
-                     fill = "Markers",
-                     facet.by = "Focus", 
-                    xlab = "",
-                    palette = c("grey","orange"), # Custom color palette
-                     sorting = "descending", 
-                     ylab = "Number of studies",# Sort value in descending order
-                     rotate = F,
-                     ggtheme = theme_bw()                        
-)
+custom_palette_marker <- wes_palette("Darjeeling1", 5, type = "continuous")
 
-plot_4 <- plot_4 + theme(legend.position = "bottom", 
-                         panel.grid.major = element_blank(), 
-                         panel.grid.minor = element_blank(), 
-                         axis.text = element_text(size = 12), 
-                         axis.title = element_text(size = 12), 
-                         axis.title.y = element_text(margin = margin(0,10,0,0), angle = 90), 
-                         axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1, size = 12),
-                         strip.text = element_text(size = 12),
-                         plot.margin = unit(c(1,1,1,1), "cm")) +
-  guides(fill = FALSE)
+plot_4 <- ggplot(tab_4, aes(x = reorder(Markers, -n), y = n, fill = Markers)) +
+  geom_bar(stat = "identity", color = "black", width = 0.7, position = position_dodge(width = 0.8)) +  # Use identity for actual values
+  facet_wrap(~ Focus) +  # Facet by 'Focus'
+  scale_fill_manual(values = custom_palette_marker) +  # Apply custom colors
+  labs(x = "", y = "Number of Studies") +
+  theme_bw() +  # Use the same ggtheme
+  theme(
+    legend.position = "bottom",
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    axis.text = element_text(size = 12),
+    axis.title = element_text(size = 12),
+    axis.title.y = element_text(margin = margin(0, 10, 0, 0), angle = 90),
+    axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1, size = 12),
+    strip.text = element_text(size = 12),
+    plot.margin = unit(c(1, 1, 1, 1), "cm")
+  ) +
+  guides(fill = "none")  # Remove legend
 
-
-plot_4
+# Print the plot
+print(plot_4)
 
 ggsave("plot_4.tiff",
        plot = plot_4,
@@ -376,8 +318,11 @@ data2 <- data_2 %>%
                        labels = c("2001-2005", "2006-2010", "2011-2015", "2016-2020", "2021-2025")))
 
 tab_4 <- data2 %>%
-  group_by(Markers, new_bin) %>%
+  group_by(Markers, new_bin, Focus) %>%
   count(Markers, sort = T)
+
+
+year_order <- c("2001-2005", "2006-2010", "2011-2015", "2016-2020", "2021-2025")
 
 tab_4
 
@@ -385,37 +330,42 @@ tab_4$Focus <- recode_factor(tab_4$Focus, "Popgen" = "Population Genetics", "Soc
 
 tab_4$Focus <- factor(tab_4$Focus, levels = c("Reproductive Behaviour", "Population Genetics", "Demography", "Social Behaviour"))
 
+tab_4$new_bin <- factor(tab_4$new_bin, levels = c("2001-2005", "2006-2010", "2011-2015", "2016-2020", "2021-2025"))
+
+
 tab_4$Markers <- factor(tab_4$Markers, levels = c("RFLP", "AFLP", "mSat", "SNP"))
 
-plot_7 <- ggbarplot(tab_4, x = "Markers", y = "n",
-                     fill = "Markers",
-                     facet.by = "new_bin", 
-                     palette = "Paired",
-                     ylab = "Number of studies",
-                     rotate = F,
-                     ggtheme = theme_bw())
+tab_4
 
-plot_7 <- plot_7 + theme(legend.position = "bottom", 
-                          panel.grid.major = element_blank(), 
-                          panel.grid.minor = element_blank(), 
-                          axis.text = element_text(size = 11), 
-                          axis.title = element_text(size = 11), 
-                          axis.title.y = element_text(margin = margin(0,15,0,0)), 
-                          plot.margin = unit(c(1,1,1,1), "cm"), 
-                          strip.text = element_text(size = 11)) +
-  guides(colour = guide_legend(override.aes = list(size = 3), nrow = 3))
+tab_4$new_bin <- factor(tab_4$new_bin, levels = unique(tab_4$new_bin))
 
-print(plot_7)
+figure_2 <- ggplot(tab_4, aes(x = new_bin, y = n, fill = Markers)) +
+  geom_bar(color = "black", stat = "identity", position = position_dodge2(preserve = "single"), width = 1) +  # Use stat="identity" to plot pre-summarized data
+  facet_wrap(~ Focus) +  # Facet by Focus
+  scale_fill_brewer(palette = "Paired") +  
+  xlab("Year") + # Set color palette
+  labs(y = "Number of studies") +  # Y-axis label
+  theme_bw() +
+  scale_x_discrete(limits = year_order) + # Base theme
+  theme(
+    legend.position = "bottom", 
+    axis.text = element_text(size = 11),
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    axis.title = element_text(size = 11), 
+    axis.title.y = element_text(margin = margin(0, 15, 0, 0)), 
+    plot.margin = unit(c(1, 1, 1, 1), "cm"), 
+    strip.text = element_text(size = 11)
+  ) +
+  guides(fill = guide_legend(override.aes = list(size = 3), nrow = 1))
 
 
-ggsave("plot_7.tiff",
-       plot = plot_7,
-       width = 28,
-       height = 25,
-       units = "cm", 
-       path = "C:/Users/samue/Desktop/Honours/Chapter_1_lit_review/New_Plots", 
-       dpi = 1500
-)
+# Print the plot
+print(figure_2)
+
+emf("C:/Users/samue/Desktop/Honours/Chapter_1_lit_review/New_Plots/figure_2.emf", width = 12, height = 13)  # Set the width and height in inches
+print(figure_2)
+dev.off()
+
 
 ## Sociality
 
@@ -999,7 +949,7 @@ ggsave("plot_16.tiff",
        
 ## PLOT CUMULATIVE COUNT BY FOCUS
 
-focus_cum <-  data2%>%
+focus_cum <-  data_2%>%
   group_by(Focus) %>%
   arrange(Year) %>%
   mutate(cumulative_count = row_number())
@@ -1007,6 +957,8 @@ focus_cum <-  data2%>%
 focus_cum$Focus <- recode_factor(focus_cum$Focus, "Popgen" = "Population Genetics", "Social" = "Sociality")
 
 focus_cum$Focus <- factor(focus_cum$Focus, levels = c("Reproduction", "Population Genetics", "Demography", "Sociality"))
+
+focus_cum
 
 cumplot_1 <- ggplot(data = focus_cum, aes(x = Year, y = cumulative_count, color = Focus, group = Focus)) +
   geom_line(size = 1) +
@@ -1019,22 +971,21 @@ cumplot_1 <- ggplot(data = focus_cum, aes(x = Year, y = cumulative_count, color 
   ) +
   scale_y_continuous(breaks = seq(0, max(focus_cum$cumulative_count), by = 10))+
   theme(
-    legend.position = "bottom",
-    panel.grid.major = element_blank(),
-    panel.grid.minor = element_blank(),
+    legend.position = "none",
     axis.text = element_text(size = 12),
     axis.title = element_text(size = 12),
     axis.title.y = element_text(margin = margin(0, 15, 0, 0)),
     plot.margin = margin(1, 1, 1, 1, "cm")
   ) +
-  guides(color = guide_legend(override.aes = list(size = 3), nrow = 1)) +
   geom_vline(xintercept = 2015, linetype = "dashed", size = 1) +
   annotate("text", x = 2016, y = 50, 
            label = "Genomics Era", angle = 90, vjust = -0.5, size = 5)
 
 print(cumplot_1)
 
-
+emf("C:/Users/samue/Desktop/Honours/Chapter_1_lit_review/Figures_for_pub/figure_4.emf", width = 10, height = 8)  # Set the width and height in inches
+print(cumplot_1)
+dev.off()
 
 ## PLOT CUMULATIVE COUNT BY MARKER
 
